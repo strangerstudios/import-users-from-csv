@@ -58,6 +58,15 @@ class ReadCSV {
 		return $c;
 	}
 
+	public function seek($position) {
+		fseek($this->file, $position);
+		$this->nc = fgetc($this->file);
+		$this->eof = ($this->nc === FALSE);
+	}
+
+	public function get_position() {
+		return ftell($this->file);
+	}
 
 	/**
 	 * Get next record from CSV file.
