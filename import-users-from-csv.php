@@ -438,9 +438,6 @@ class IS_IU_Import_Users {
 				continue;
 			}
 
-			if($position == 1122)
-				var_dump($line);
-
 			// Separate user data from meta
 			$userdata = $usermeta = array();
 			foreach ( $line as $ckey => $column ) {
