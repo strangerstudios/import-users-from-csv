@@ -6,7 +6,7 @@
 Plugin Name: Import Users from CSV
 Plugin URI: http://wordpress.org/extend/plugins/import-users-from-csv/
 Description: Import Users data and metadata from a csv file.
-Version: 1.0.0
+Version: 2.0.0
 Author: Ulrich Sossou
 Author URI: http://ulrichsossou.com/
 License: GPL2
@@ -33,6 +33,12 @@ load_plugin_textdomain( 'import-users-from-csv', false, basename( dirname( __FIL
 if ( ! defined( 'IS_IU_CSV_DELIMITER' ) )
 	define ( 'IS_IU_CSV_DELIMITER', ',' );
 
+if ( ! defined( 'IS_IU_CSV_ESCAPE') )
+	define ( 'IS_IU_CSV_ESCAPE', '\\' );
+
+if ( ! defined( 'IS_IU_CSV_ENCLOSURE') )
+	define ( 'IS_IU_CSV_ENCLOSURE', '"' );
+
 /**
  * Main plugin class
  *
@@ -47,7 +53,7 @@ class IS_IU_Import_Users {
 	 *
 	 * @since 0.1
 	 **/
-	public function init() {
+	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'add_admin_pages' ) );
 		add_action( 'init', array( __CLASS__, 'process_csv' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_enqueue_scripts') );
@@ -63,7 +69,7 @@ class IS_IU_Import_Users {
 	 *
 	 * @since 0.1
 	 **/
-	public function add_admin_pages() {
+	public static function add_admin_pages() {
 		add_users_page( __( 'Import From CSV' , 'import-users-from-csv'), __( 'Import From CSV' , 'import-users-from-csv'), 'create_users', 'import-users-from-csv', array( __CLASS__, 'users_page' ) );
 	}
 
@@ -72,7 +78,7 @@ class IS_IU_Import_Users {
 	 *
 	 * @since ?
 	 **/
-	public function admin_enqueue_scripts($hook) {
+	public static function admin_enqueue_scripts($hook) {
 		if ( empty($_GET['page']) || $_GET['page'] != 'import-users-from-csv') {
 			return;
 		}
@@ -85,7 +91,7 @@ class IS_IU_Import_Users {
 	 *
 	 * @since 0.1
 	 **/
-	public function process_csv() {
+	public static function process_csv() {
 		if ( isset( $_POST['_wpnonce-is-iu-import-users-users-page_import'] ) ) {
 			check_admin_referer( 'is-iu-import-users-users-page_import', '_wpnonce-is-iu-import-users-users-page_import' );
 			
@@ -180,7 +186,7 @@ class IS_IU_Import_Users {
 	 *
 	 * @since 0.1
 	 **/
-	public function users_page() {
+	public static function users_page() {
 		if ( ! current_user_can( 'create_users' ) )
 			wp_die( __( 'You do not have sufficient permissions to access this page.' , 'import-users-from-csv') );
 	?>
@@ -401,15 +407,17 @@ class IS_IU_Import_Users {
 			'role'
 		);
 
-		include( plugin_dir_path( __FILE__ ) . 'class-readcsv.php' );
+		// Mac CR+LF fix
+		ini_set( 'auto_detect_line_endings', TRUE );
+		$fh = fopen( $filename, 'r');
 
 		// Loop through the file lines
-		$file_handle = fopen( $filename, 'r' );
-		$csv_reader = new ReadCSV( $file_handle, IS_IU_CSV_DELIMITER, "\xEF\xBB\xBF" ); // Skip any UTF-8 byte order mark.
-
 		$first = true;
 		$rkey = 0;
-		while ( ( $line = $csv_reader->get_row() ) !== NULL ) {
+
+		while (! feof($fh) ) {
+
+			$line = fgetcsv($fh, 0, IS_IU_CSV_DELIMITER, IS_IU_CSV_ENCLOSURE, IS_IU_CSV_ESCAPE );
 
 			// If the first line is empty, abort
 			// If another line is empty, just skip it
@@ -431,7 +439,7 @@ class IS_IU_Import_Users {
 					$position = get_transient('iufcsv_' . basename($filename));
 					if(!empty($position))
 					{					
-						$csv_reader->seek($position);
+						fseek($fh,$position);
 					}
 				}
 				
@@ -522,14 +530,16 @@ class IS_IU_Import_Users {
 			//if doing a partial import, save our spot and break
 			if(!empty($partial) && $rkey)
 			{
-				$position = $csv_reader->get_position();
+				$position = ftell($fh);
 				set_transient('iufcsv_' . basename($filename), $position, 60*60*24*2);
 
 				if($rkey > $per_partial-1)
 					break;
 			}
 		}
-		fclose( $file_handle );
+
+		fclose( $fh );
+		ini_set('auto_detect_line_endings',TRUE);
 
 		// One more thing to do after all imports?
 		do_action( 'is_iu_post_users_import', $user_ids, $errors );
