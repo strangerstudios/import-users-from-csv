@@ -47,7 +47,7 @@ class IS_IU_Import_Users {
 	 *
 	 * @since 0.1
 	 **/
-	public function init() {
+	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'add_admin_pages' ) );
 		add_action( 'init', array( __CLASS__, 'process_csv' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_enqueue_scripts') );
@@ -63,7 +63,7 @@ class IS_IU_Import_Users {
 	 *
 	 * @since 0.1
 	 **/
-	public function add_admin_pages() {
+	public static function add_admin_pages() {
 		add_users_page( __( 'Import From CSV' , 'import-users-from-csv'), __( 'Import From CSV' , 'import-users-from-csv'), 'create_users', 'import-users-from-csv', array( __CLASS__, 'users_page' ) );
 	}
 
@@ -72,7 +72,7 @@ class IS_IU_Import_Users {
 	 *
 	 * @since ?
 	 **/
-	public function admin_enqueue_scripts($hook) {
+	public static function admin_enqueue_scripts($hook) {
 		if ( empty($_GET['page']) || $_GET['page'] != 'import-users-from-csv') {
 			return;
 		}
@@ -85,7 +85,7 @@ class IS_IU_Import_Users {
 	 *
 	 * @since 0.1
 	 **/
-	public function process_csv() {
+	public static function process_csv() {
 		if ( isset( $_POST['_wpnonce-is-iu-import-users-users-page_import'] ) ) {
 			check_admin_referer( 'is-iu-import-users-users-page_import', '_wpnonce-is-iu-import-users-users-page_import' );
 			
@@ -180,7 +180,7 @@ class IS_IU_Import_Users {
 	 *
 	 * @since 0.1
 	 **/
-	public function users_page() {
+	public static function users_page() {
 		if ( ! current_user_can( 'create_users' ) )
 			wp_die( __( 'You do not have sufficient permissions to access this page.' , 'import-users-from-csv') );
 	?>
@@ -513,7 +513,7 @@ class IS_IU_Import_Users {
 
 				// Some plugins may need to do things after one user has been imported. Who know?
 				do_action( 'is_iu_post_user_import', $user_id );
-
+				
 				$user_ids[] = $user_id;
 			}						
 
