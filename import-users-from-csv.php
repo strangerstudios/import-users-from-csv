@@ -409,6 +409,7 @@ class IS_IU_Import_Users {
 
 		// Mac CR+LF fix
 		ini_set( 'auto_detect_line_endings', true );
+		
 		$fh = fopen( $filename, 'r');
 
 		// Loop through the file lines
@@ -593,6 +594,7 @@ class IS_IU_Import_Users {
 	 * @since 2.0
 	 */
 	public function wp_ajax_import_users_from_csv() {
+	 
 		//check for filename
 		if(empty($_GET['filename'])) {
 			die("No file name given.");
@@ -610,9 +612,9 @@ class IS_IU_Import_Users {
         }
 
 		//get settings
-		$password_nag          = isset( $_GET['password_nag'] ) ? $_GET['password_nag'] : false;
-		$users_update          = isset( $_GET['users_update'] ) ? $_GET['users_update'] : false;
-		$new_user_notification = isset( $_GET['new_user_notification'] ) ? $_GET['new_user_notification'] : false;
+		$password_nag          = isset( $_REQUEST['password_nag'] ) ? ( 1 === intval( $_REQUEST['password_nag'] ) ) : false;
+		$users_update          = isset( $_REQUEST['users_update'] ) ? ( 1 === intval($_REQUEST['users_update'] ) ) : false;
+		$new_user_notification = isset( $_REQUEST['new_user_notification'] ) ? ( 1 === intval($_REQUEST['new_user_notification'] ) ) : false;
 		
 		//import next few lines of file
 		$args = array(
@@ -633,7 +635,7 @@ class IS_IU_Import_Users {
 			
 			//delete position transient
 			delete_transient('iufcsv_' . $filename);
-		} elseif ( $results['errors'] ) {
+		} elseif ( !empty( $results['errors'] ) ) {
 		    echo "X ";
 		} else {
 		    echo "Importing " . str_pad('', count($results['user_ids']), '.') . "\n";
