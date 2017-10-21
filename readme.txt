@@ -76,9 +76,21 @@ You can try importing that file and look at the result.
 == Changelog ==
 
 = 2.0.1 =
+* Fixed bug: Sanitizing request variables
 * Fixed bug: Notification nag not getting configured correctly
 * Fixed bug: New user notification not getting configured correctly
+* Fixed bug: Didn't always handle pause/resume well
 * Enhancement: Added `is_iu_import_records_per_scan` filter to let user set # of records to import per step when using JS import
+* Enhancement: Refactored and added local scope for variables & functions
+* Enhancement: Use JSON and status returns from server
+* Enhancement: Use filter to set timeout for AJAX operation
+* Enhancement: Use proper WP AJAX functionality for variables and statuses
+* Enhancement: Clean up translations and grammar.
+* Enhancement: Use printf()/sprintf() to improve formatting & translation
+* Enhancement: Use wp_register_script()/wp_localize_script() and wp_enqueue_script() to handle passing dynamic data to JavaScript
+* Enhancement: Clean up REQUEST variable use
+* Enhancement: Allow setting password nag for both new and updated accounts
+* Enhancement: Use wp_send_json*() functions for AJAX actions
 
 = 2.0.0 =
 * Fixed bug with Notification Nag
