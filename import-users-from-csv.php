@@ -1,13 +1,14 @@
 <?php
 /*
 Plugin Name: Import Users from CSV
-Plugin URI: http://wordpress.org/extend/plugins/import-users-from-csv/
-Description: Import Users data and metadata from a csv file.
+Plugin URI: http://wordpress.org/plugins/import-users-from-csv/
+Description: Import Users and their metadata from a csv file.
 Version: 2.0.1
-Author: Ulrich Sossou, Thomas Sjolshagen
-Author URI: http://ulrichsossou.com/
+Requires PHP: 5.4
+Author: <a href="http://ulrichsossou.com/">Ulrich Sossou</a>, <a href="https://eighty20results.com/thomas-sjolshagen/">Thomas Sjolshagen <thomas@eighty20results.com></a>
 License: GPL2
 Text Domain: import-users-from-csv
+Domain Path: languages/
 */
 /*  Copyright 2011, 2017  Ulrich Sossou  (https://github.com/sorich87), Thomas Sjolshagen (https://eighty20results.com/thomas-sjolshagen)
 
