@@ -1,10 +1,9 @@
 === Import Users from CSV ===
-Contributors: sorich87
+Contributors: sorich87, eighty20results
 Tags: user, users, csv, batch, import, importer, admin
 Requires at least: 4.0
-PHP Version: 5.5
 Tested up to: 4.8.2
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 
 Import users from a CSV file into WordPress
 
@@ -79,7 +78,8 @@ You can try importing that file and look at the result.
 * Fixed bug: Sanitizing request variables
 * Fixed bug: Notification nag not getting configured correctly
 * Fixed bug: New user notification not getting configured correctly
-* Fixed bug: Didn't always handle pause/resume well
+* Fixed bug: Didn't always handle pause/resume (at all)
+* Fixed bug: Didn't stop/pause the import when user clicked the "pause" link
 * Enhancement: Added `is_iu_import_records_per_scan` filter to let user set # of records to import per step when using JS import
 * Enhancement: Refactored and added local scope for variables & functions
 * Enhancement: Use JSON and status returns from server
