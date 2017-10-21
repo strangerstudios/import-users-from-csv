@@ -94,33 +94,44 @@ class IS_IU_Import_Users {
 		$error_log_url  = self::$log_dir_url . 'is_iu_errors.log';
 
 		if ( ! file_exists( $error_log_file ) ) {
+		 
 			if ( ! @fopen( $error_log_file, 'x' ) ) {
 			    
-				    echo '<div class="updated"><p><strong>' . sprintf( __( 'Notice: please make the directory %s writable so that you can see the error log.' , 'import-users-from-csv'), self::$log_dir_path ) . '</strong></p></div>';
+                printf( '<div class="updated"><p><strong>%s</strong></p></div>',
+                sprintf(
+                        __( 'Note: Please make the %s directory writable to allow you to see/save the error log.' , 'import-users-from-csv'),
+                         self::$log_dir_path
+                         )
+                );
 			}
 		}
 
 		if ( isset( $_GET['import'] ) ) {
 			$error_log_msg = '';
+			
 			if ( file_exists( $error_log_file ) ) {
-			    $error_log_msg = sprintf( __( ', please <a href="%s">check the error log</a>' , 'import-users-from-csv'), $error_log_url );
+			    $error_log_msg = sprintf(
+			            __( ', please %1$scheck the error log%2$s' , 'import-users-from-csv'),
+			            sprintf('<a href="%s">', esc_url_raw( $error_log_url ) ),
+			            '</a>'
+			            );
 			}
 
 			switch ( $_GET['import'] ) {
 				case 'file':
-					echo '<div class="error"><p><strong>' . __( 'Error during file upload.' , 'import-users-from-csv') . '</strong></p></div>';
+					printf( '<div class="error"><p><strong>%s</strong></p></div>', __( 'Error during file upload.' , 'import-users-from-csv') );
 					break;
 				case 'data':
-					echo '<div class="error"><p><strong>' . __( 'Cannot extract data from uploaded file or no file was uploaded.' , 'import-users-from-csv') . '</strong></p></div>';
+					printf( '<div class="error"><p><strong>%s</strong></p></div>', __( 'Cannot extract data from uploaded file or no file was uploaded.' , 'import-users-from-csv') );
 					break;
 				case 'fail':
-					echo '<div class="error"><p><strong>' . sprintf( __( 'No user was successfully imported%s.' , 'import-users-from-csv'), $error_log_msg ) . '</strong></p></div>';
+					printf( '<div class="error"><p><strong>%s</strong></p></div>', sprintf( __( 'No user was successfully imported%s.' , 'import-users-from-csv'), $error_log_msg ) );
 					break;
 				case 'errors':
-					echo '<div class="error"><p><strong>' . sprintf( __( 'Some users were successfully imported but some were not%s.' , 'import-users-from-csv'), $error_log_msg ) . '</strong></p></div>';
+					printf( '<div class="error"><p><strong>%s</strong></p></div>', sprintf( __( 'Some users were successfully imported but some were not%s.' , 'import-users-from-csv'), $error_log_msg ) );
 					break;
 				case 'success':
-					echo '<div class="updated"><p><strong>' . __( 'Users import was successful.' , 'import-users-from-csv') . '</strong></p></div>';
+					printf( '<div class="updated"><p><strong>%s</strong></p></div>', __( 'Users import was successful.' , 'import-users-from-csv') );
 					break;
 				default:
 					break;
@@ -128,16 +139,13 @@ class IS_IU_Import_Users {
 			
 			if($_GET['import'] == 'resume' && !empty($_GET['filename'])) {
 			 
-				$filename = sanitize_file_name($_GET['filename']);
-				$password_nag          = isset( $_GET['password_nag'] ) ? $_GET['password_nag'] : false;
-				$users_update          = isset( $_GET['users_update'] ) ? $_GET['users_update'] : false;
-				$new_user_notification = isset( $_GET['new_user_notification'] ) ? $_GET['new_user_notification'] : false;
-
+				$filename = sanitize_file_name($_REQUEST['filename']);
 				//resetting position transients?
-				if(!empty($_GET['reset']))
-					{delete_transient('iufcsv_' . $filename);}
+				if(!empty($_GET['reset'])) {
+				    delete_transient("iufcsv_{$filename}" );
+				}
 			?>
-			<h3><?php _e('Importing file over AJAX', 'import-users-from-csv' ); ?></h3>
+			<h3><?php _e( 'Importing file using AJAX', 'import-users-from-csv' ); ?></h3>
 			<p><strong><?php _e('IMPORTANT:', 'import-users-from-csv' ); ?></strong> <?php printf(
 			        __('Your import is not finished. Closing this page will stop it. If the import stops or you have to close your browser, you can navigate to %sthis URL%s to resume the import later.', 'import-users-from-csv'),
 			sprintf('<a href="%s">', admin_url( $_SERVER['QUERY_STRING'] ) ),
@@ -151,12 +159,6 @@ class IS_IU_Import_Users {
 			</p>
 			
 			<textarea id="importstatus" rows="10" cols="60"><?php _e( 'Loading...', 'import-users-from-csv' ); ?></textarea>
-			<script>
-				var ai_filename = <?php echo json_encode($filename);?>;
-				var ai_users_update = <?php echo json_encode($users_update);?>;
-				var ai_new_user_notification = <?php echo json_encode($new_user_notification);?>;
-				var ai_password_nag = <?php echo json_encode($password_nag);?>;
-			</script>
 			<?php
 			}
 		}
@@ -218,10 +220,7 @@ class IS_IU_Import_Users {
 			<p class="submit">
 				<input type="submit" class="button-primary" value="<?php _e( 'Import' , 'import-users-from-csv'); ?>" />
 			</p>
-		</form>
-
-		
-		<?php
+		</form><?php
 		}
 	}
 
@@ -232,7 +231,13 @@ class IS_IU_Import_Users {
 	 **/
 	public function add_admin_pages() {
 	 
-		add_users_page( __( 'Import From CSV' , 'import-users-from-csv'), __( 'Import From CSV' , 'import-users-from-csv'), 'create_users', 'import-users-from-csv', array( __CLASS__, 'users_page' ) );
+		add_users_page(
+		        __( 'Import From CSV' , 'import-users-from-csv'),
+		        __( 'Import From CSV' , 'import-users-from-csv'),
+		        'create_users',
+		        'import-users-from-csv',
+		        array( self::$instance, 'users_page' )
+        );
 	}
 	
 	/**
@@ -246,8 +251,28 @@ class IS_IU_Import_Users {
 			return;
 		}
 
-		wp_enqueue_script( 'import-users-from-csv', plugin_dir_url( __FILE__ ) . 'ajaximport.js' );
-	}
+		$filename              = isset( $_REQUEST['filename'] ) ? sanitize_file_name($_REQUEST['filename']) : null;
+		$password_nag          = isset( $_REQUEST['password_nag'] ) ? ( 1 === intval( $_REQUEST['password_nag'] ) ) : false;
+		$users_update          = isset( $_REQUEST['users_update'] ) ? ( 1 === intval($_REQUEST['users_update'] ) ) : false;
+		$new_user_notification = isset( $_REQUEST['new_user_notification'] ) ? ( 1 === intval($_REQUEST['new_user_notification'] ) ) : false;
+        $max_run_time = (
+                apply_filters( 'is_iu_import_time_per_record', 3 ) *
+                apply_filters( 'is_iu_import_records_per_scan', 30 )
+            );
+        
+		wp_register_script( 'import-users-from-csv', plugins_url( 'ajaximport.js',__FILE__ ), array('jquery' ), '2.0.1'  );
+		
+		wp_localize_script( 'import-users-from-csv', 'ia_settings',
+		array(
+		            'timeout' => $max_run_time,
+                    'filename' => $filename,
+                    'users_update' => $users_update,
+                    'new_user_notification' => $new_user_notification,
+                    'password_nag' => $password_nag,
+                )
+		);
+        wp_enqueue_script( 'import-users-from-csv' );
+    }
  
 	/**
 	 * Process content of CSV file
@@ -264,9 +289,9 @@ class IS_IU_Import_Users {
 			 
 				// Setup settings variables
 				$filename              = $_FILES['users_csv']['tmp_name'];
-				$password_nag          = isset( $_POST['password_nag'] ) ? $_POST['password_nag'] : false;
-				$users_update          = isset( $_POST['users_update'] ) ? $_POST['users_update'] : false;
-				$new_user_notification = isset( $_POST['new_user_notification'] ) ? $_POST['new_user_notification'] : false;
+		        $password_nag          = isset( $_REQUEST['password_nag'] ) ? ( 1 === intval( $_REQUEST['password_nag'] ) ) : false;
+		        $users_update          = isset( $_REQUEST['users_update'] ) ? ( 1 === intval($_REQUEST['users_update'] ) ) : false;
+		        $new_user_notification = isset( $_REQUEST['new_user_notification'] ) ? ( 1 === intval($_REQUEST['new_user_notification'] ) ) : false;
 				
 				//use AJAX?
 				if ( !empty( $_POST['ajaximport'] ) ) {
@@ -314,8 +339,17 @@ class IS_IU_Import_Users {
 					}
 					
 					//redurect to the page to run AJAX
-					$url = admin_url('users.php?page=import-users-from-csv&import=resume&filename=' . $filename);
-					$url = add_query_arg(array('password_nag'=>$password_nag, 'new_user_notification'=>$new_user_notification, 'users_update'=>$users_update), $url);
+					$url = add_query_arg(
+					        array(
+                                'page' => 'import-users-from-csv',
+                                'import' => 'resume',
+                                'filename' => $filename,
+                                'password_nag'=>$password_nag,
+                                'new_user_notification'=>$new_user_notification,
+                                'users_update'=>$users_update,
+					        ),
+					        admin_url('users.php' )
+                        );
 					
 					wp_redirect($url);
 					exit;
@@ -384,7 +418,7 @@ class IS_IU_Import_Users {
 			'new_user_notification' => false,
 			'users_update' => false,
 			'partial' => false,
-			'per_partial' => 20,
+			'per_partial' => 30,
 		);
 		
 		// Securely extract variables
@@ -607,8 +641,9 @@ class IS_IU_Import_Users {
 		$import_dir = $upload_dir['basedir'] . "/imports/";
 		
 		//make sure file exists
-		if(!file_exists($import_dir . $filename)) {
-			die("nofile");
+		if( ! file_exists("{$import_dir}{$filename}" ) ) {
+			wp_send_json_error(array( 'status' => -1, 'message' => sprintf( __("File (%s) not found!", 'import-users-from-csv' ), $filename ) ) );
+			exit;
         }
 
 		//get settings
@@ -624,24 +659,26 @@ class IS_IU_Import_Users {
 			'new_user_notification' => $new_user_notification,
 		);
 	
-		$results = self::import_csv( $import_dir . $filename, $args );
+		$results = self::import_csv( "{$import_dir}{$filename}", $args );
 
-		// No users imported?
+		// No users imported (or done)
 		if ( empty( $results['user_ids'] ) ) {
-			echo "done";
 		
-			//delete file
-			unlink($import_dir . $filename);
+			//Clear the file
+			unlink("{$import_dir}{$filename}" );
 			
-			//delete position transient
-			delete_transient('iufcsv_' . $filename);
+			//Clear position transient
+			delete_transient("iufcsv_{$filename}");
+			wp_send_json_success(array( 'status' => true, 'message' => null ) );
+			exit;
+			
 		} elseif ( !empty( $results['errors'] ) ) {
-		    echo "X ";
+		    wp_send_json_error( array( 'status' => false, 'message' => sprintf( __('Unable to import certain user records: %s', 'import-users-from-csv' ), count( $results['errors'] ), implode( ', ', $results['errors']->getMessages() ) ) ) );
+		    exit;
 		} else {
-		    echo "Importing " . str_pad('', count($results['user_ids']), '.') . "\n";
+		    wp_send_json_success( array( 'status' => true, 'message' => "Importing " . str_pad('', count($results['user_ids']), '.') . "\n" ) );
+		    exit;
 		}
-		
-		exit;
 	}
 }
 
