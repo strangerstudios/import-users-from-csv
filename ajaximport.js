@@ -90,7 +90,6 @@
             $resumebutton.show();
 
             $status.html($status.html() + 'Pausing. You may see one more partial import update under here as we clean up.\n');
-            ai_importPartial( $status, $title, $cycles, $pause_import, $count );
         });
 
         //enable resume button
