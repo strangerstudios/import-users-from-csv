@@ -1,54 +1,64 @@
 (function($){
     "use strict";
+
+    var $import_timer;
+    var $pause_import;
+
     function ai_importPartial( $status, $title, $cycles, $pause_import, $count )  {
 
         $.ajax({
             url: ajaxurl,
             type:'GET',
-            timeout: 30000,
-            dataType: 'html',
+            timeout: (parseInt( ia_settings.timeout ) * 1000),
+            dataType: 'json',
             data: {
                 action: 'import_users_from_csv',
-                'filename' : ai_filename,
-                'password_nag': ai_password_nag,
-                'users_update': ai_users_update,
-                'new_user_notification': ai_new_user_notification
+                'filename' : ia_settings.filename,
+                'password_nag': ia_settings.password_nag,
+                'users_update': ia_settings.users_update,
+                'new_user_notification': ia_settings.new_user_notification
             },
-            error: function(xml){
-                window.alert('Error with import. Try refreshing.');
+            error: function( $xml){
+                window.console.log( 'Import error: ', $xml );
+                window.alert( 'Error with import. Try refreshing: ' );
             },
-            success: function(responseHTML){
-                if (responseHTML === 'error')
-                {
-                    window.alert('Error with import. Try refreshing.');
-                    document.title = $title;
-                }
-                else if(responseHTML === 'nofile')
-                {
-                    $status.html($status.html() + '\nCould not find the file ' + ai_filename + '. Maybe it has already been imported.');
-                    document.title = $title;
-                }
-                else if(responseHTML === 'done')
-                {
-                    $status.html($status.html() + '\nDone!');
-                    document.title = '! ' + $title;
-                }
-                else
-                {
-                    $status.html($status.html() + responseHTML);
-                    document.title = $cycles[parseInt($count)%4] + ' ' + $title;
+            success: function($response){
 
-                    if(!$pause_import) {
+                if ( $response.success === true ) {
 
-                        var $import_timer = setTimeout(function () {
-                            ai_importPartial( $status, $title, $cycles, $pause_import, $count );
-                        }, 2000);
+                    if ( typeof $response.data.status !== 'undefined' && $response.data.status === true ) {
+
+                        if ( typeof $response.data.message !== 'undefined' && null !== $response.data.message ) {
+
+                            $status.html($status.html() + $response.data.message);
+                            document.title = $cycles[(parseInt($count) % 4 )] + ' ' + $title;
+
+                            if (false === $pause_import) {
+
+                                $import_timer = setTimeout(function () {
+                                    ai_importPartial($status, $title, $cycles, $pause_import, $count);
+                                }, 2000);
+                            }
+                        } else if ( typeof $response.data.message !== 'undefined' ) {
+                            $status.html($status.html() + '\nDone!');
+                            document.title = '! ' + $title;
+                        }
                     }
-                }
 
-                //scroll the text area unless the mouse is over it
-                if ($('#importstatus:hover').length !== 0) {
-                    $status.scrollTop($status[0].scrollHeight - $status.height());
+                    // Scroll the text area to the bottom unless the mouse is over it
+                    if ($('#importstatus:hover').length <= 0) {
+                        $status.scrollTop( $status[0].scrollHeight - $status.height() );
+                    }
+
+                } else {
+
+                    if ( typeof $response.data.message !== 'undefined' && ( $response.data.status === false || $response.data.status === -1 ) ) {
+
+                        $status.html($status.html() + $response.data.message );
+
+                        document.title = $title;
+                        window.alert('Error with import. Try refreshing.');
+                    }
                 }
             }
         });
@@ -56,42 +66,51 @@
 
     $(document).ready(function() {
 
-        //find status
+        //Get status
         var $status = $('#importstatus');
+
+        // Init variables
         var $row = 1;
         var $count = 0;
         var $title = document.title;
         var $cycles = ['|','/','-','\\'];
         var $pausebutton = $('#pauseimport');
         var $resumebutton = $('#resumeimport');
-        var $pauseimport = false;
+
+        $pause_import = false;
 
         //enable pause button
-        $pausebutton.click(function() {
-            $pauseimport = true;
-            $import_timer = false;
+        $pausebutton.unbind('click').on('click', function() {
+
+            clearTimeout( $import_timer);
+
+            $pause_import = true;
+
             $pausebutton.hide();
             $resumebutton.show();
 
-            $status.html($status.html() + 'Pausing. You may see one more partial import update under here.\n');
+            $status.html($status.html() + 'Pausing. You may see one more partial import update under here as we clean up.\n');
+            ai_importPartial( $status, $title, $cycles, $pause_import, $count );
         });
 
         //enable resume button
-        $resumebutton.click(function() {
-            $pauseimport = false;
+        $resumebutton.unbind('click').on('click', function() {
+
+            $pause_import = false;
+            clearTimeout( $import_timer);
             $resumebutton.hide();
             $pausebutton.show();
 
             $status.html($status.html() + 'Resuming...\n');
 
-            ai_importPartial( $status, $title, $cycles, $pauseimport, $count );
+            ai_importPartial( $status, $title, $cycles, $pause_import, $count );
         });
 
         //start importing and update status
         if($status.length > 0)
         {
             $status.html($status.html() + '\n' + 'JavaScript Loaded.\n');
-            var $import_timer = setTimeout(function() { ai_importPartial( $status, $title, $cycles, $pauseimport, $count );}, 2000);
+            $import_timer = setTimeout(function() { ai_importPartial( $status, $title, $cycles, $pause_import, $count );}, 2000);
         }
     });
 
