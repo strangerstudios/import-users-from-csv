@@ -107,7 +107,7 @@ class IS_IU_Import_Users {
 			}
 		}
 
-		if ( isset( $_GET['import'] ) ) {
+		if ( isset( $_REQUEST['import'] ) ) {
 			$error_log_msg = '';
 			
 			if ( file_exists( $error_log_file ) ) {
@@ -118,7 +118,7 @@ class IS_IU_Import_Users {
 			            );
 			}
 
-			switch ( $_GET['import'] ) {
+			switch ( $_REQUEST['import'] ) {
 				case 'file':
 					printf( '<div class="error"><p><strong>%s</strong></p></div>', __( 'Error during file upload.' , 'import-users-from-csv') );
 					break;
@@ -138,12 +138,13 @@ class IS_IU_Import_Users {
 					break;
 			}
 			
-			if($_GET['import'] == 'resume' && !empty($_GET['filename'])) {
+			if($_REQUEST['import'] == 'resume' && !empty($_REQUEST['filename'])) {
 			 
 				$filename = sanitize_file_name($_REQUEST['filename']);
 				//resetting position transients?
-				if(!empty($_GET['reset'])) {
-				    delete_transient("iufcsv_{$filename}" );
+				if(!empty($_REQUEST['reset'])) {
+				    $file = basename( $filename );
+				    delete_option("iufcsv_{$filename}" );
 				}
 			?>
 			<h3><?php _e( 'Importing file using AJAX', 'import-users-from-csv' ); ?></h3>
@@ -164,7 +165,7 @@ class IS_IU_Import_Users {
 			}
 		}
 		
-		if(empty($_GET['filename']))
+		if(empty($_REQUEST['filename']))
 		{
 		?>
 		<form method="post" action="" enctype="multipart/form-data">
@@ -221,8 +222,8 @@ class IS_IU_Import_Users {
 					<th scope="row"><?php _e( 'AJAX' , 'import-users-from-csv'); ?></th>
 					<td><fieldset>
 						<legend class="screen-reader-text"><span><?php _e( 'AJAX' , 'import-users-from-csv' ); ?></span></legend>
-						<label for="ajaximport">
-							<input id="ajaximport" name="ajaximport" type="checkbox" value="1" />
+						<label for="background_import">
+							<input id="background_import" name="background_import" type="checkbox" value="1" />
 							<?php _e( 'Use AJAX to process the import gradually over time.', 'import-users-from-csv' ) ;?>
 						</label>
 					</fieldset></td>
@@ -272,7 +273,7 @@ class IS_IU_Import_Users {
                 apply_filters( 'is_iu_import_records_per_scan', 30 )
             );
         
-		wp_register_script( 'import-users-from-csv', plugins_url( 'ajaximport.js',__FILE__ ), array('jquery' ), '2.0.1'  );
+		wp_register_script( 'import-users-from-csv', plugins_url( 'javascript/import-users-from-csv.js',__FILE__ ), array('jquery' ), '2.0.1'  );
 		
 		wp_localize_script( 'import-users-from-csv', 'ia_settings',
 		array(
@@ -294,7 +295,7 @@ class IS_IU_Import_Users {
 	 **/
 	public function process_csv() {
 	 
-		if ( isset( $_POST['_wpnonce-is-iu-import-users-users-page_import'] ) ) {
+		if ( isset( $_REQUEST['_wpnonce-is-iu-import-users-users-page_import'] ) ) {
 			
 		    check_admin_referer( 'is-iu-import-users-users-page_import', '_wpnonce-is-iu-import-users-users-page_import' );
 			
@@ -309,7 +310,7 @@ class IS_IU_Import_Users {
 				
 		        
 				//use AJAX?
-				if ( !empty( $_POST['ajaximport'] ) ) {
+				if ( !empty( $_REQUEST['background_import'] ) ) {
 				 
 					//check for a imports directory in wp-content
 					$upload_dir = wp_upload_dir();
@@ -442,6 +443,7 @@ class IS_IU_Import_Users {
 		// Securely extract variables
 		$settings = wp_parse_args( $args, $defaults );
 		
+		// Cast variables to expected type
         $password_nag = (bool) $settings['password_nag'];
 		$new_user_notification = (bool) $settings['new_user_notification'];
 		$password_hashing_disabled = (bool) $settings['password_hashing_disabled'];
@@ -463,6 +465,7 @@ class IS_IU_Import_Users {
 		// Mac CR+LF fix
 		ini_set( 'auto_detect_line_endings', true );
 		
+		$file = basename($filename);
 		$fh = fopen( $filename, 'r');
 
 		// Loop through the file lines
@@ -490,8 +493,9 @@ class IS_IU_Import_Users {
 				
 				//skip ahead for partial imports
 				if(!empty($partial)) {
-				 
-					$position = get_transient('iufcsv_' . basename($filename));
+
+				    // Get filename only
+					$position = get_option( "iufcsv_{$file}", null );
 					
 					if(!empty($position)) {
 						fseek($fh,$position);
@@ -553,7 +557,7 @@ class IS_IU_Import_Users {
 				$userdata['user_pass'] = wp_generate_password( 12, false );
 			}
 			
-
+            // Insert, Update or insert without (re) hashing the password
 			if ( true === $update && false === $password_hashing_disabled ) {
 			    $user_id = wp_update_user( $userdata );
 			} else if ( false === $update && false === $password_hashing_disabled ) {
@@ -566,6 +570,7 @@ class IS_IU_Import_Users {
 			if ( is_wp_error( $user_id ) ) {
 				$errors[$rkey] = $user_id;
 			} else {
+			 
 				// If no error, let's update the user meta too!
 				if ( $usermeta ) {
 					foreach ( $usermeta as $metakey => $metavalue ) {
@@ -594,11 +599,12 @@ class IS_IU_Import_Users {
 
 			$rkey++;
 			
-			//if doing a partial import, save our spot and break
+			// Doing a partial import, save our location and then exit
 			if(!empty($partial) && $rkey) {
 			 
 				$position = ftell($fh);
-				set_transient('iufcsv_' . basename($filename), $position, 60*60*24*2);
+				
+				update_option("iufcsv_{$file}", $position, 'no' );
 
 				if($rkey > $per_partial-1) {
 				    break;
@@ -865,10 +871,10 @@ class IS_IU_Import_Users {
 	public function wp_ajax_import_users_from_csv() {
 	 
 		//check for filename
-		if(empty($_GET['filename'])) {
-			die("No file name given.");
+		if(empty($_REQUEST['filename'])) {
+			wp_die( __( "No file name given.", "import-users-from-csv" ) );
         } else {
-			$filename = sanitize_file_name($_GET['filename']);
+			$filename = sanitize_file_name($_REQUEST['filename']);
         }
 		
 		//figure out upload dir
@@ -885,11 +891,13 @@ class IS_IU_Import_Users {
 		$password_nag          = isset( $_REQUEST['password_nag'] ) ? ( 1 === intval( $_REQUEST['password_nag'] ) ) : false;
 		$users_update          = isset( $_REQUEST['users_update'] ) ? ( 1 === intval($_REQUEST['users_update'] ) ) : false;
 		$new_user_notification = isset( $_REQUEST['new_user_notification'] ) ? ( 1 === intval($_REQUEST['new_user_notification'] ) ) : false;
+		$password_hashing_disabled 	= isset( $_POST['password_hashing_disabled'] ) ? ( 1 === intval(  $_REQUEST['password_hashing_disabled'] ) ): false;
 		
 		//import next few lines of file
 		$args = array(
 			'partial'=>true,
 			'password_nag' => $password_nag,
+			'password_hashing_disabled' => $password_hashing_disabled,
 			'users_update' => $users_update,
 			'new_user_notification' => $new_user_notification,
 		);
@@ -902,8 +910,9 @@ class IS_IU_Import_Users {
 			//Clear the file
 			unlink("{$import_dir}{$filename}" );
 			
-			//Clear position transient
-			delete_transient("iufcsv_{$filename}");
+			//Clear position
+			delete_option("iufcsv_{$filename}");
+			
 			wp_send_json_success(array( 'status' => true, 'message' => null ) );
 			exit;
 			
@@ -911,7 +920,7 @@ class IS_IU_Import_Users {
 		    wp_send_json_error( array( 'status' => false, 'message' => sprintf( __('Unable to import certain user records: %s', 'import-users-from-csv' ), count( $results['errors'] ), implode( ', ', $results['errors']->getMessages() ) ) ) );
 		    exit;
 		} else {
-		    wp_send_json_success( array( 'status' => true, 'message' => "Importing " . str_pad('', count($results['user_ids']), '.') . "\n" ) );
+		    wp_send_json_success( array( 'status' => true, 'message' => sprintf( __( "Imported %s", "import-users-from-csv" ), str_pad('', count($results['user_ids']), '.') . "\n" ) ) );
 		    exit;
 		}
 	}
