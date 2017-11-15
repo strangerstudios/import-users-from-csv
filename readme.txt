@@ -91,6 +91,9 @@ You can try importing that file and look at the result.
 * Enhancement: Clean up REQUEST variable use
 * Enhancement: Allow setting password nag for both new and updated accounts
 * Enhancement: Use wp_send_json*() functions for AJAX actions
+* Enhancement: Allow import of pre-hashed passwords for user records
+* Enhancement: More reliable option based tracking of imports (not transients)
+* Enhancement: Moved JavaScript to own location
 
 = 2.0.0 =
 * Fixed bug with Notification Nag

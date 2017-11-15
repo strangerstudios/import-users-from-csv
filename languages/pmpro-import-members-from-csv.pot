@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Import Users from CSV 0.3\n"
-"Report-Msgid-Bugs-To: http://wordpress.org/tag/import-users-from-csv\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/pmpro-import-members-from-csv\n"
 "POT-Creation-Date: 2011-12-17 16:55+0100\n"
 "PO-Revision-Date: 2011-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
