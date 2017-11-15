@@ -377,9 +377,9 @@ class Import_Members_From_CSV {
 	}
 
 	/**
-	 * Add administration menus
+	 * Add to Memberships Menu in WP Back-end (left sidebar)
 	 *
-	 * @since 0.1
+	 * @since 2.1
 	 **/
 	public function add_admin_pages() {
 	 
@@ -395,6 +395,7 @@ class Import_Members_From_CSV {
 	
 	/**
      * Add Import Members to the PMPro Members drop-down menu
+     * @since 2.1
      */
 	public function load_to_pmpro_menu() {
 	    
@@ -410,6 +411,7 @@ class Import_Members_From_CSV {
         );
         }
 	}
+	
 	/**
 	 * Add admin JS
 	 *
