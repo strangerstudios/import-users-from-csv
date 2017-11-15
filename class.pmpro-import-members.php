@@ -158,7 +158,7 @@ class Import_Members_From_CSV {
 	 * @since 2.0
      *
 	 **/
-	public function init() {
+	public function load_plugins() {
 		
         add_action( 'init', array( self::get_instance(), 'load_i18n' ), 5 );
 		add_action( 'init', array( self::get_instance(), 'process_csv' ) );
@@ -172,6 +172,8 @@ class Import_Members_From_CSV {
 		add_action( 'pmp_im_pre_user_import', array( self::get_instance(), 'pre_user_import' ) , 10, 2);
 		add_filter( 'pmp_im_import_usermeta', array( self::get_instance(), 'import_usermeta' ), 10, 2);
 		add_action( 'pmp_im_post_user_import', array( self::get_instance(), 'after_user_import' ), 10, 2 );
+		
+		add_action( 'admin_bar_menu', array( self::get_instance(), 'load_to_pmpro_menu' ), 1001 );
 		
 		// Set URIs in plugin listing to PMPro support
 		add_filter( 'plugin_row_meta', array( self::get_instance(), 'plugin_row_meta' ), 10, 2);
@@ -271,7 +273,7 @@ class Import_Members_From_CSV {
 				    delete_option("iufcsv_{$filename}" );
 				}
 			?>
-			<h3><?php _e( 'Importing file using AJAX', 'pmpro-import-members-from-csv' ); ?></h3>
+			<h3><?php _e( 'Importing the file using AJAX (in the background)', 'pmpro-import-members-from-csv' ); ?></h3>
 			<p><strong><?php _e('IMPORTANT:', 'pmpro-import-members-from-csv' ); ?></strong> <?php printf(
 			        __('Your import is not finished. %1$sClosing this page will stop the import operation%2$s. If the import stops or you have to close your browser, you can navigate to %3$sthis URL%4$s to resume the import operation later.', 'pmpro-import-members-from-csv'),
 			'<strong>',
@@ -298,29 +300,29 @@ class Import_Members_From_CSV {
 			<?php wp_nonce_field( 'pmp-im-import-members', 'pmp-im-import-members-wpnonce' ); ?>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><label for="users_csv"><?php _e( 'CSV file' , 'pmpro-import-members-from-csv'); ?></label></th>
+					<th scope="row"><label for="users_csv"><?php _e( 'CSV file to load' , 'pmpro-import-members-from-csv'); ?></label></th>
 					<td>
 						<input type="file" id="users_csv" name="users_csv" value="" class="all-options" /><br />
 						<span class="description"><?php echo sprintf( __( 'You may want to see <a href="%s">the example of the CSV file</a>.' , 'pmpro-import-members-from-csv'), plugin_dir_url(__FILE__).'examples/import.csv'); ?></span>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php _e( 'Notification' , 'pmpro-import-members-from-csv'); ?></th>
+					<th scope="row"><?php _e( 'Send notification' , 'pmpro-import-members-from-csv'); ?></th>
 					<td><fieldset>
-						<legend class="screen-reader-text"><span><?php _e( 'Notification' , 'pmpro-import-members-from-csv'); ?></span></legend>
+						<legend class="screen-reader-text"><span><?php _e( 'Send new user notification to the user and admin' , 'pmpro-import-members-from-csv'); ?></span></legend>
 						<label for="new_user_notification">
 							<input id="new_user_notification" name="new_user_notification" type="checkbox" value="1" />
-							<?php _e('Send to new users', 'pmpro-import-members-from-csv') ?>
+							<?php _e('Send the new user notification to new users', 'pmpro-import-members-from-csv') ?>
 						</label>
 					</fieldset></td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php _e( 'Password nag' , 'pmpro-import-members-from-csv'); ?></th>
+					<th scope="row"><?php _e( 'Show password nag' , 'pmpro-import-members-from-csv'); ?></th>
 					<td><fieldset>
 						<legend class="screen-reader-text"><span><?php _e( 'Password nag' , 'pmpro-import-members-from-csv'); ?></span></legend>
 						<label for="password_nag">
 							<input id="password_nag" name="password_nag" type="checkbox" value="1" />
-							<?php _e('Show password nag on new users signon', 'pmpro-import-members-from-csv') ?>
+							<?php _e('Show the password nag when the new user(s) log in', 'pmpro-import-members-from-csv') ?>
 						</label>
 					</fieldset></td>
 				</tr>
@@ -330,38 +332,38 @@ class Import_Members_From_CSV {
                         <legend class="screen-reader-text"><span><?php _e( 'Password is hashed' , 'pmpro-import-members-from-csv' ); ?></span></legend>
                         <label for="password_hashing_disabled">
                             <input id="password_hashing_disabled" name="password_hashing_disabled" type="checkbox" value="1" />
-                            <?php _e( 'Password is hashed', 'pmpro-import-members-from-csv' ) ;?>
+                            <?php _e( "The passsword in the .csv file is already hashed and doesn't need to be encrypted by the import process.", 'pmpro-import-members-from-csv' ) ;?>
                         </label>
                     </fieldset></td>
                 </tr>
 				<tr valign="top">
-					<th scope="row"><?php _e( 'Users update' , 'pmpro-import-members-from-csv'); ?></th>
+					<th scope="row"><?php _e( 'Update user record' , 'pmpro-import-members-from-csv'); ?></th>
 					<td><fieldset>
 						<legend class="screen-reader-text"><span><?php _e( 'Users update' , 'pmpro-import-members-from-csv' ); ?></span></legend>
 						<label for="users_update">
 							<input id="users_update" name="users_update" type="checkbox" value="1" />
-							<?php _e( 'Update user when a username or email exists', 'pmpro-import-members-from-csv' ) ;?>
+							<?php _e( "Update, don't add a user when the username or email already exists", 'pmpro-import-members-from-csv' ) ;?>
 						</label>
 					</fieldset></td>
 				</tr>
                 <tr valign="top">
-					<th scope="row"><?php _e( 'Deactivate existing membership(s)' , 'pmpro-import-members-from-csv'); ?></th>
+					<th scope="row"><?php _e( 'Deactivate existing membership' , 'pmpro-import-members-from-csv'); ?></th>
 					<td><fieldset>
 						<legend class="screen-reader-text"><span><?php _e( 'Deactivate existing membership' , 'pmpro-import-members-from-csv' ); ?></span></legend>
 						<label for="deactivate_">
 							<input id="deactivate_old_memberships" name="deactivate_old_memberships" type="checkbox" value="1" />
-							<?php _e( "Set member status to 'cancelled' for a user when their user ID and membership ID exists in the database", "pmpro-import-members-from-csv" ) ;?>
+							<?php _e( "Refresh the member status when importing someone who has an 'active' membership level", "pmpro-import-members-from-csv" ) ;?>
 						</label>
 					</fieldset></td>
 				</tr>
 
 				<tr valign="top">
-					<th scope="row"><?php _e( 'AJAX' , 'pmpro-import-members-from-csv'); ?></th>
+					<th scope="row"><?php _e( 'Large .CSV file import' , 'pmpro-import-members-from-csv'); ?></th>
 					<td><fieldset>
-						<legend class="screen-reader-text"><span><?php _e( 'AJAX' , 'pmpro-import-members-from-csv' ); ?></span></legend>
+						<legend class="screen-reader-text"><span><?php _e( 'Import a large .csv file. Example, your import file consists of more than 100 entries' , 'pmpro-import-members-from-csv' ); ?></span></legend>
 						<label for="background_import">
 							<input id="background_import" name="background_import" type="checkbox" value="1" />
-							<?php _e( 'Use AJAX to process the import gradually over time.', 'pmpro-import-members-from-csv' ) ;?>
+							<?php _e( 'Use a background process to import all of the records.', 'pmpro-import-members-from-csv' ) ;?>
 						</label>
 					</fieldset></td>
 				</tr>
@@ -381,7 +383,8 @@ class Import_Members_From_CSV {
 	 **/
 	public function add_admin_pages() {
 	 
-		add_users_page(
+		add_submenu_page(
+		        'pmpro-membershiplevels',
 		        __( 'Import Members' , 'pmpro-import-members-from-csv'),
 		        __( 'Import Members' , 'pmpro-import-members-from-csv'),
 		        'create_users',
@@ -390,6 +393,23 @@ class Import_Members_From_CSV {
         );
 	}
 	
+	/**
+     * Add Import Members to the PMPro Members drop-down menu
+     */
+	public function load_to_pmpro_menu() {
+	    
+	    global $wp_admin_bar;
+	    
+	    if( current_user_can('create_users') ) {
+		    $wp_admin_bar->add_menu( array(
+            'id' => 'pmpro-import-members-from-csv',
+            'parent' => 'paid-memberships-pro',
+            'title' => __( 'Import Members', 'pmpro-import-members-from-csv' ),
+            'href' => add_query_arg( 'page', 'pmpro-import-members-from-csv', get_admin_url(null, 'admin.php' ) )
+            )
+        );
+        }
+	}
 	/**
 	 * Add admin JS
 	 *
@@ -1453,4 +1473,4 @@ class Import_Members_From_CSV {
 }
 
 // Load the plugin.
-add_action('plugins_loaded', array( Import_Members_From_CSV::get_instance(), 'init' ) );
+add_action('plugins_loaded', array( Import_Members_From_CSV::get_instance(), 'load_plugins' ) );
