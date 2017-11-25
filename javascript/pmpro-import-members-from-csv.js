@@ -68,22 +68,26 @@
 
                 $.ajax({
                     url: ajaxurl,
-                    type:'GET',
+                    type:'POST',
                     timeout: (parseInt( pmp_im_settings.timeout ) * 1000),
                     dataType: 'json',
                     data: {
                         action: 'import_members_from_csv',
+                        'background_import': parseInt( pmp_im_settings.background_import ),
                         'filename' : pmp_im_settings.filename,
-                        'password_nag': pmp_im_settings.password_nag,
-                        'users_update': pmp_im_settings.users_update,
-                        'deactivate_old_memberships': pmp_im_settings.deactivate_old_memberships,
-                        'new_user_notification': pmp_im_settings.new_user_notification,
-                        'password_hashing_disabled' : pmp_im_settings.password_hashing_disabled,
+                        'password_nag': parseInt( pmp_im_settings.password_nag ),
+                        'update_users': parseInt( pmp_im_settings.update_users ),
+                        'deactivate_old_memberships': parseInt( pmp_im_settings.deactivate_old_memberships ),
+                        'new_user_notification': parseInt( pmp_im_settings.new_user_notification ),
+                        'password_hashing_disabled' : parseInt( pmp_im_settings.password_hashing_disabled ),
+                        'per_partial': parseInt( pmp_im_settings.per_partial ),
                         'pmp-im-import-members-nonce': $('#pmp-im-import-members-nonce').val()
                     },
                     error: function( $response ){
                         window.console.log( 'Import error: ', $response );
                         window.alert( pmp_im_settings.lang.alert_msg );
+
+                        window.location.href = pmp_im_settings.admin_page;
                     },
                     success: function( $response ){
 
