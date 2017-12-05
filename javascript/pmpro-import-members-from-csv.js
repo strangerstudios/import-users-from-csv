@@ -8,7 +8,7 @@
                 this.status = $('#importstatus');
                 this.pausebutton = $('#pauseimport');
                 this.resumebutton = $('#resumeimport');
-
+                this.complete_btn = $("#completedImport");
                 this.title = document.title;
                 this.cycles = ['|','/','-','\\'];
                 this.count = 0;
@@ -24,6 +24,7 @@
                 if(self.status.length > 0) {
 
                     self.status.html( self.status.html() + '\n' + pmp_im_settings.lang.loaded + '\n');
+                    self.set_busy();
                     self.importTimer = setTimeout(
                         function() {
                             self.import();
@@ -61,6 +62,10 @@
                     self.import();
                 });
 
+                self.complete_btn.unbind('click').on('click', function( event ) {
+                    event.preventDefault();
+                    location.href = pmp_im_settings.admin_page;
+                });
             },
             import: function() {
 
@@ -81,6 +86,7 @@
                         'new_user_notification': parseInt( pmp_im_settings.new_user_notification ),
                         'password_hashing_disabled' : parseInt( pmp_im_settings.password_hashing_disabled ),
                         'per_partial': parseInt( pmp_im_settings.per_partial ),
+                        'import': pmp_im_settings.import,
                         'pmp-im-import-members-nonce': $('#pmp-im-import-members-nonce').val()
                     },
                     error: function( $response ){
@@ -109,6 +115,7 @@
                                 } else if ( typeof $response.data.message !== 'undefined' ) {
                                     self.status.html( self.status.html() + '\n' + pmp_im_settings.lang.done );
                                     document.title = '! ' + self.title;
+                                    self.complete_btn.show();
                                 }
                             }
 
@@ -129,6 +136,12 @@
                         }
                     }
                 });
+            },
+            set_busy: function() {
+                $('#importstatus:hover').css( 'cursor', 'wait' );
+            },
+            clear_busy: function(){
+                $('#importstatus:hover').css( 'cursor', 'text' );
             }
         };
 
