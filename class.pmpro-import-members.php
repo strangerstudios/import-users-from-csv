@@ -231,6 +231,7 @@ class Import_Members_From_CSV {
 		}
 	?>
 	<div class="wrap">
+	    <?php printf( '<div id="e20r-status" %s></div>', ( isset( $_REQUEST['import'] ) ? 'style="display: none;' : 'style="display: inline-block;"' ) ); ?>
 		<h2><?php _e( 'Import PMPro members from a CSV file' , 'pmpro-import-members-from-csv'); ?></h2>
 		<?php
 
@@ -257,7 +258,8 @@ class Import_Members_From_CSV {
 			            '</a>'
 			            );
 			}
-
+			
+   
 			switch ( $_REQUEST['import'] ) {
 				case 'file':
 					printf( '<div class="error"><p><strong>%s</strong></p></div>', __( 'Error during file upload.' , 'pmpro-import-members-from-csv') );
@@ -275,13 +277,13 @@ class Import_Members_From_CSV {
 					printf( '<div class="updated"><p><strong>%s</strong></p></div>', __( 'Member import was successful.' , 'pmpro-import-members-from-csv') );
 					break;
 				default:
-					break;
 			}
 			
 			if($_REQUEST['import'] == 'resume' && !empty($_REQUEST['filename'])) {
 			 
 				$this->filename = sanitize_file_name($_REQUEST['filename']);
-				//resetting position transients?
+				
+				//Resetting position option?
 				if(!empty($_REQUEST['reset'])) {
 				    $file = basename( $this->filename );
 				    delete_option("pmpcsv_{$this->filename}" );
@@ -306,7 +308,6 @@ class Import_Members_From_CSV {
 			<?php
 			}
 		}
-		
 		if(empty($_REQUEST['filename']))
 		{
 		?>
@@ -1225,6 +1226,35 @@ class Import_Members_From_CSV {
 		
 		$results = $this->import_csv(  "{$import_dir}{$this->filename}", $args );
 
+		$error_log_msg = null;
+			
+        if ( file_exists( $this->logfile_path ) ) {
+            $error_log_msg = sprintf(
+                    __( ', please %1$scheck the error log%2$s' , 'pmpro-import-members-from-csv'),
+                    sprintf('<a href="%s">', esc_url_raw( $this->logfile_url ) ),
+                    '</a>'
+                    );
+        }
+        
+        switch ( $_REQUEST['import'] ) {
+            case 'file':
+                $status = sprintf('<div class="error"><p><strong>%s</strong></p></div>', __( 'Error during file upload.' , 'pmpro-import-members-from-csv') );
+                break;
+            case 'data':
+                $status = sprintf('<div class="error"><p><strong>%s</strong></p></div>', __( 'Cannot extract data from uploaded file or no file was uploaded.' , 'pmpro-import-members-from-csv') );
+                break;
+            case 'fail':
+                $status = sprintf('<div class="error"><p><strong>%s</strong></p></div>', sprintf( __( 'No members were successfully imported%s.' , 'pmpro-import-members-from-csv'), $error_log_msg ) );
+                break;
+            case 'errors':
+                $status = sprintf('<div class="error"><p><strong>%s</strong></p></div>', sprintf( __( 'Some members were successfully imported but some were not%s.' , 'pmpro-import-members-from-csv'), $error_log_msg ) );
+                break;
+            case 'success':
+                $status = sprintf( '<div class="updated"><p><strong>%s</strong></p></div>', __( 'Member import was successful.' , 'pmpro-import-members-from-csv') );
+                break;
+            default:
+        }
+			
 		// No users imported (or done)
 		if ( empty( $results['user_ids'] ) ) {
 		
