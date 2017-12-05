@@ -1,21 +1,23 @@
 === Import Users from CSV ===
-Contributors: sorich87, eighty20results
-Tags: user, users, csv, batch, import, importer, admin
-Requires at least: 4.0
-Tested up to: 4.8.2
-Stable tag: 2.0.1
+Contributors: eighty20results, sorich87, ideadude
+Tags: user, users, csv, batch, import, importer, admin, paid memberships pro, members, member, pmpro
+Requires at least: 4.4
+Tested up to: 4.9.1
+Stable tag: 2.1
 
 Import users from a CSV file into WordPress
 
 == Description ==
 
-I needed to batch import users into WordPress but I didn't find any plugin which would import all the user data fields as well as user meta.
+I updated and integrated the Import Users from CSV with the PMPro Import Users from CSV Integration add-on to create a membership specific user CSV import plugin.
 
-This plugin allows you to import users from an uploaded CSV file. It will add users with basic information as well as meta fields and user role.
+This plugin allows you to import users from an uploaded CSV file. It will add users with basic information as well as meta fields, the user role (if applicable) and the included PMPro Membership information.
+
+If you've exported the user's passwords as hashed strings, you can import them without re-encrypting them again (by setting the option).
 
 You can also choose to send a notification to the new users and to display password nag on user login.
 
-[Check out my other free plugins.](http://profiles.wordpress.org/users/sorich87/)
+[Check out my other plugins.](http://eighty20results.com/wordpress-plugins/)
 
 = Features =
 
@@ -26,8 +28,8 @@ You can also choose to send a notification to the new users and to display passw
 * Sends new user notification (if the option is selected)
 * Shows password nag on user login (if the option is selected)
 
-For feature request and bug reports, [please use the forums](http://wordpress.org/tags/import-users-from-csv?forum_id=10#postform).
-Code contributions are welcome [on Github](https://github.com/sorich87/Import-Users-from-CSV).
+For feature request and bug reports, [please use the issues section on GitHub](https://github.com/eighty20results/import-members-from-csv/issues).
+Code contributions are welcome [on Github](https://github.com/eighty20results/import-members-from-csv).
 
 == Installation ==
 
@@ -73,6 +75,28 @@ You can try importing that file and look at the result.
 1. User import screen
 
 == Changelog ==
+= 2.1 =
+* BUG FIX: Lost track of how to update via JavaScript
+* BUG FIX: Didn't preserve settings between loads of JS
+* BUG FIX: Didn't always load the correct settings for the JS based import
+* BUG FIX: Include error info
+* BUG FIX: Didn't include all required settings in AJAX operation
+* BUG FIX: Didn't set and clear busy icon for import status text
+* ENHANCEMENT/FIX: Use PMPro variable array to set record info for each user
+* ENHANCEMENT/FIX: Renamed methods to better describe where they're being used/what they're used for
+* ENHANCEMENT: Action handler when clicking the "Finished" button at end of import ( redirect to admin_url() )
+* ENHANCEMENT: Add set_busy() and clear_busy() for feedback during import
+* ENHANCEMENT: Add "Finished" button (display when import is complete)
+* ENHANCEMENT: Reorder options (more logical, I think)
+* ENHANCEMENT: Use AJAX import as default behavior
+* ENHANCEMENT: Add "Import Members" to "Memberships" drop-down menu in /wp-admin/
+* ENHANCEMENT: Improved prompts/info for options on import page
+* ENHANCEMENT: Load plugin actions in plugins_loaded action
+* ENHANCEMENT: Fixing PHPDoc for new functions/updated functions
+* ENHANCEMENT: Variable name update
+* ENHANCEMENT: Clean up insert method for hashed passwords
+* ENHANCEMENT: Log error message if there's a problem with a header field
+* ENHANCEMENT: Adding screenshot images
 
 = 2.0.1 =
 * Fixed bug: Sanitizing request variables
