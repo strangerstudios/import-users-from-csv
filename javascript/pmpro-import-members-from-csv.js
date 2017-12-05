@@ -115,6 +115,7 @@
                                 } else if ( typeof $response.data.message !== 'undefined' ) {
                                     self.status.html( self.status.html() + '\n' + pmp_im_settings.lang.done );
                                     document.title = '! ' + self.title;
+                                    self.clear_busy();
                                     self.complete_btn.show();
                                 }
                             }
@@ -138,10 +139,10 @@
                 });
             },
             set_busy: function() {
-                $('#importstatus:hover').css( 'cursor', 'wait' );
+                $('#importstatus').css( 'cursor', 'wait' );
             },
             clear_busy: function(){
-                $('#importstatus:hover').css( 'cursor', 'text' );
+                $('#importstatus').css( 'cursor', 'pointer' );
             }
         };
 
