@@ -86,6 +86,7 @@
                         'new_user_notification': parseInt( pmp_im_settings.new_user_notification ),
                         'password_hashing_disabled' : parseInt( pmp_im_settings.password_hashing_disabled ),
                         'per_partial': parseInt( pmp_im_settings.per_partial ),
+                        'site_id': parseInt( pmp_im_settings.site_id ),
                         'import': pmp_im_settings.import,
                         'pmp-im-import-members-nonce': $('#pmp-im-import-members-nonce').val()
                     },

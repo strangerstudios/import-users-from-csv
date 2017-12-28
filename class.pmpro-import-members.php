@@ -3,7 +3,7 @@
 * Plugin Name: Paid Memberships Pro - Import Members from CSV
 * Plugin URI: http://wordpress.org/plugins/pmpro-import-members-from-csv/
 * Description: Import Users and their metadata from a csv file.
-* Version: 2.1
+* Version: 2.2
 * Requires PHP: 5.4
 * Author: <a href="https://eighty20results.com/thomas-sjolshagen/">Thomas Sjolshagen <thomas@eighty20results.com></a>
 * License: GPL2
@@ -120,6 +120,13 @@ class Import_Members_From_CSV {
     private $new_member_notification = false;
     
     /**
+     * The ID of the multisite to import the user data to/for
+     *
+     * @var null|int $site_id
+     */
+    private $site_id = null;
+    
+    /**
      * Import the CSV file as a "background" process (i.e. with a JavaScript loop)
      *
      * @var bool $background_import
@@ -178,7 +185,8 @@ class Import_Members_From_CSV {
 		add_action( 'init', array( self::get_instance(), 'process_csv' ) );
 
         add_action( 'admin_menu', array( self::get_instance(), 'add_admin_pages' ) );
-
+        add_action( 'admin_notices', array( self::get_instance(), 'display_admin_message' ) );
+        
 		add_action( 'admin_enqueue_scripts', array( self::get_instance(), 'admin_enqueue_scripts' ) );
 		add_action( 'wp_ajax_import_members_from_csv', array( self::get_instance(), 'wp_ajax_import_members_from_csv' ) );
 		
@@ -228,8 +236,7 @@ class Import_Members_From_CSV {
 	 
 		if ( ! current_user_can( 'create_users' ) ) {
 		    wp_die( __( 'You do not have sufficient permissions to access this page.' , 'pmpro-import-members-from-csv') );
-		}
-	?>
+		} ?>
 	<div class="wrap">
 	    <?php printf( '<div id="e20r-status" %s></div>', ( !isset( $_REQUEST['import'] ) ? 'style="display: none;"' : 'style="display: inline-block;"' ) ); ?>
 		<h2><?php _e( 'Import PMPro members from a CSV file' , 'pmpro-import-members-from-csv'); ?></h2>
@@ -311,9 +318,7 @@ class Import_Members_From_CSV {
 			}
 		}
 		
-		if(empty($_REQUEST['filename']))
-		{
-		?>
+		if(empty($_REQUEST['filename'])) { ?>
 		<form method="post" action="" enctype="multipart/form-data">
 			<?php wp_nonce_field( 'pmp-im-import-members', 'pmp-im-import-members-wpnonce' ); ?>
 			<table class="form-table">
@@ -384,13 +389,37 @@ class Import_Members_From_CSV {
 						</label>
 					</fieldset></td>
 				</tr>
+				<?php
+				if ( is_multisite() ):
+				
+				$site_list = get_sites();
+				?>
+                <tr valign="top">
+					<th scope="row"><?php _e( 'Site to import to' , 'pmpro-import-members-from-csv'); ?></th>
+					<td><fieldset>
+						<legend class="screen-reader-text"><span><?php _e( 'Select the multisite instance to import these members to.' , 'pmpro-import-members-from-csv' ); ?></span></legend>
+							<select id="site_id" name="site_id">
+							<?php foreach( $site_list as $site ) {
+							    $subsite_id = $site->blog_id;
+							    $subsite_name = $site->blogname;
+                            ?>
+                                <option value="<?php esc_attr_e( $subsite_id ); ?>"><?php esc_html_e( $subsite_name ); ?></option>
+                            <?php
+							} ?>
+							</select>
+					</fieldset></td>
+				</tr>
+
+                <?php
+				endif;
+				?>
 				<?php do_action('pmp_im_import_page_setting_html' ) ?>
 			</table>
 			<p class="submit">
 				<input type="submit" class="button-primary" value="<?php _e( 'Import' , 'pmpro-import-members-from-csv'); ?>" />
 			</p>
-		</form><?php
-		}
+		</form>
+		<?php }
 	}
 
 	/**
@@ -462,6 +491,7 @@ class Import_Members_From_CSV {
                     'password_hashing_disabled' => intval( $this->password_hashing_disabled ),
                     'password_nag' => intval( $this->password_nag ),
                     'per_partial' => intval( $this->per_partial ),
+                    'site_id' => intval( $this->site_id ),
                     'admin_page' => admin_url(),
                     'import' => isset( $_REQUEST['import'] ) ? sanitize_text_field( $_REQUEST['import'] ) : null,
                     'lang' => array(
@@ -516,7 +546,8 @@ class Import_Members_From_CSV {
         $this->new_user_notification      = !empty( $_REQUEST['new_user_notification'] ) ? ( 1 === intval($_REQUEST['new_user_notification'] ) ) : $this->new_user_notification;
         $this->new_member_notification      = !empty( $_REQUEST['new_member_notification'] ) ? ( 1 === intval($_REQUEST['new_member_notification'] ) ) : $this->new_member_notification;
         $this->per_partial = !empty( $_REQUEST['per_partial'] ) ? intval( $_REQUEST['per_partial'] ) : $this->per_partial;
-
+        $this->site_id = !empty( $_REQUEST['site_id'] ) ? intval( $_REQUEST['site_id'] ) : $this->site_id;
+        
         $this->per_partial = apply_filters( 'pmp_im_import_records_per_scan', $this->per_partial );
     }
 
@@ -530,6 +561,35 @@ class Import_Members_From_CSV {
 	    return !empty( $this->filename );
 	}
 
+	/**
+     * Add admin notice to WP Admin backedn
+     */
+	public function display_admin_message() {
+
+	    $error_msgs = get_option( 'pmp_im_error_msg', array() );
+	    
+        if ( WP_DEBUG ) {
+	        error_log("Error info: " . print_r( $error_msgs, true ) );
+	    }
+
+	    if ( !empty( $error_msgs ) && is_admin() ) {
+	        
+	        foreach( $error_msgs as $msg_info ) {
+	    ?>
+        <div class="notice notice-<?php esc_attr_e( $msg_info['type'] ); ?> is-dismissible">
+	        <p><strong><?php esc_html_e( $msg_info['message'] ); ?></strong></p>
+	        <button type="button" class="notice-dismiss">
+		        <span class="screen-reader-text"><?php __( 'Dismiss this message.', 'pmpro-import-members-from-csv' ); ?></span>
+	        </button>
+        </div>
+        <?php
+            }
+            
+            // Clear error/warning/notice/success messages
+            delete_option( 'pmp_im_error_msg' );
+        }
+	}
+	
 	/**
 	 * Process content of CSV file
 	 *
@@ -572,10 +632,20 @@ class Import_Members_From_CSV {
 					
 					$count = 0;
 					
+					if ( empty( $this->filename ) ) {
+					    
+					    
+					    $this->log_errors(  array( new \WP_Error( 'pmp_import', __( 'No .CSV file specified for import!', 'pmpro-import-members-from-csv' ) ) ) );
+					    $this->add_error_msg( __( 'CSV file not selected!', 'import-members-from-csv' ), 'error' );
+					    
+					    wp_redirect( add_query_arg( 'import', 'fail', wp_get_referer() ) );
+					    exit();
+                    }
+					
 					while ( file_exists("{$import_dir}{$this->filename}" ) ) {
 					 
 						if( !empty( $count ) ) {
-							$this->filename = $this->str_lreplace("-{$count}.{$filetype}", "-" . strval($count+1) . ".{$filetype}", $this->filename );
+							$this->filename = $this->str_lreplace("-{$count}.{$filetype}", "-" . strval($count + 1 ) . ".{$filetype}", $this->filename );
 						} else {
 							$this->filename = $this->str_lreplace(".{$filetype}", "-1.{$filetype}", $this->filename);
                         }
@@ -583,8 +653,8 @@ class Import_Members_From_CSV {
 						$count++;
 						
 						//let's not expect more than 50 files with the same name
-						if($count > 50) {
-							wp_die(__( "Error uploading file. Too many files with the same name. Clean out the {$import_dir} directory on your server.", "pmpro-import-members-from-csv" ));
+						if( $count > 50) {
+						    $this->add_error_msg( sprintf( __( "Error uploading file! Too many files with the same name. Clean out the %s directory on your server.", "pmpro-import-members-from-csv" ), $import_dir ), 'error' );
 						}
 					}
 					
@@ -612,6 +682,7 @@ class Import_Members_From_CSV {
                                 'deactivate_old_memberships'=>$this->deactivate_old_memberships,
                                 'partial' => true,
 			                    'per_partial' => $this->per_partial,
+			                    'site_id' => $this->site_id,
 					        ),
 					        admin_url('admin.php' )
                         );
@@ -621,7 +692,7 @@ class Import_Members_From_CSV {
 					
 				} else {
 				 
-					$results = $this->import_csv( array(
+					$results = $this->import_csv( $this->filename, array(
                         'filename' => $this->filename,
                         'background_import' => true,
                         'update_users' => $this->update_users,
@@ -631,6 +702,7 @@ class Import_Members_From_CSV {
                         'deactivate_old_memberships'=>$this->deactivate_old_memberships,
 			            'partial' => false,
 			            'per_partial' => apply_filters( 'pmp_im_import_records_per_scan', 30 ),
+			            'site_id' => $this->site_id,
 					) );
 
 					// No users imported?
@@ -654,6 +726,61 @@ class Import_Members_From_CSV {
 			exit;
 		}
 	}
+	
+	/**
+	 * Log errors to a file
+	 *
+     * @param array $errors
+     *
+	 * @since 1.0
+	 **/
+	private function log_errors( $errors ) {
+	 
+		if ( empty( $errors ) ) {
+		    return;
+		}
+
+		$log = @fopen( $this->logfile_path, 'a' );
+		
+		@fwrite( $log,
+		sprintf(
+		        __( "BEGIN %s\n" , 'pmpro-import-members-from-csv'),
+		        date( 'Y-m-d H:i:s', current_time('timestamp' )
+		        )
+            )
+        );
+
+		/**
+         * @param \WP_Error $error
+         */
+		foreach ( $errors as $key => $error ) {
+			$line = $key + 1;
+			$message = $error->get_error_message();
+			@fwrite( $log, sprintf(
+			        __( '[Line %1$s] %2$s' , 'pmpro-import-members-from-csv'), $line, $message ) . "\n" );
+		}
+
+		@fclose( $log );
+	}
+
+	/**
+     * Add a error/warning/success/info message to /wp-admin/
+     *
+     * @param string $msg
+     * @param string $type
+     */
+	private function add_error_msg( $msg, $type = 'info' ) {
+     
+	    $error_msg = get_option( 'pmp_im_error_msg', array() );
+					   
+        if ( !empty( $error_msg ) ) {
+            $error_msg = $error_msg + array( 'type' => $type, 'message' => $msg );
+        } else {
+            $error_msg = array( array( 'type' => $type, 'message' => $msg ) );
+        }
+        
+        update_option( 'pmp_im_error_msg',  $error_msg,'no' );
+	}
 
 	/**
       * Replace leftmost instance of string
@@ -674,7 +801,7 @@ class Import_Members_From_CSV {
 
         return $subject;
     }
-
+	
 	/**
 	 * Import a csv file
 	 *
@@ -685,6 +812,10 @@ class Import_Members_From_CSV {
 	 */
 	public function import_csv( $filename, $args ) {
 		
+	    if ( is_multisite() ) {
+	        $current_blog_id = get_current_blog_id();
+	    }
+	    
 	    $errors = $user_ids = array();
 		$headers = array();
 		
@@ -699,6 +830,7 @@ class Import_Members_From_CSV {
 			'deactivate_old_memberships' => false,
 			'partial' => false,
 			'per_partial' => 30,
+			'site_id' => null,
 		);
 		
 		$defaults = apply_filters( 'pmp_im_import_default_settings', $defaults );
@@ -713,8 +845,9 @@ class Import_Members_From_CSV {
 		$update_users = (bool) $settings['update_users'];
 		$deactivate_old_memberships = (bool) $settings['deactivate_old_memberships'];
 		$partial = (bool) $settings['partial'];
+		$site_id = $settings['site_id'];
 		$per_partial = apply_filters( 'pmp_im_import_records_per_scan', intval( $settings['per_partial'] ) );
-
+  
 		// User data fields list used to differentiate with user meta
 		$userdata_fields       = array(
 			'ID', 'user_login', 'user_pass',
@@ -736,6 +869,10 @@ class Import_Members_From_CSV {
 		$first = true;
 		$rkey = 0;
 
+		if ( is_multisite() && !empty( $site_id ) ) {
+		    switch_to_blog( $site_id );
+		}
+		
 		while (! feof($fh) ) {
 
 			$line = fgetcsv($fh, 0, PMP_IM_CSV_DELIMITER, PMP_IM_CSV_ENCLOSURE, PMP_IM_CSV_ESCAPE );
@@ -818,14 +955,14 @@ class Import_Members_From_CSV {
 				if ( ! $user && isset( $userdata['user_email'] ) )
 					{$user = get_user_by( 'email', $userdata['user_email'] );}
 			}
-
+			
 			$update = false;
 			
 			if ( !empty( $user ) ) {
 				$userdata['ID'] = $user->ID;
 				$update = true;
 			}
-
+			
 			// If creating a new user and no password was set, let auto-generate one!
 			if ( false === $update && empty( $userdata['user_pass'] ) ) {
 				$userdata['user_pass'] = wp_generate_password( 12, false );
@@ -839,6 +976,8 @@ class Import_Members_From_CSV {
 			} else {
 			    $user_id = $this->insert_disabled_hashing_user( $userdata );
 			}
+			
+            $default_role = apply_filters( 'pmp_im_import_default_user_role', 'subscriber',$user_id, $site_id );
 
 			// Is there an error o_O?
 			if ( is_wp_error( $user_id ) ) {
@@ -858,9 +997,14 @@ class Import_Members_From_CSV {
                     update_user_option( $user_id, 'default_password_nag', true, true );
                 }
 
+                // Adds the user to the specified blog ID if we're in a multisite configuration
+                if ( is_multisite() && !empty( $this->site_id ) ) {
+                    add_user_to_blog( $site_id, $user_id, $default_role );
+                }
+
 				// If we created a new user, send new user notification?
 				if ( false === $update ) {
-
+				 
 					if ( true === $new_user_notification  ) {
 						wp_new_user_notification( $user_id );
                     }
@@ -898,6 +1042,11 @@ class Import_Members_From_CSV {
 		// Let's log the errors
 		$this->log_errors( $errors );
 
+		// Return to the active (pre import) site
+		if ( is_multisite() ) {
+		    switch_to_blog( $current_blog_id );
+		}
+		
 		// delete_option( "pmpcsv_{$file}" );
 		
 		return array(
@@ -1139,39 +1288,6 @@ class Import_Members_From_CSV {
 		}
 		return $user_id;
 	}
-	
-	/**
-	 * Log errors to a file
-	 *
-     * @param array $errors
-     *
-	 * @since 1.0
-	 **/
-	private function log_errors( $errors ) {
-	 
-		if ( empty( $errors ) ) {
-		    return;
-		}
-
-		$log = @fopen( $this->logfile_path, 'a' );
-		
-		@fwrite( $log,
-		sprintf(
-		        __( "BEGIN %s\n" , 'pmpro-import-members-from-csv'),
-		        date( 'Y-m-d H:i:s', current_time('timestamp' )
-		        )
-            )
-        );
-
-		foreach ( $errors as $key => $error ) {
-			$line = $key + 1;
-			$message = $error->get_error_message();
-			@fwrite( $log, sprintf(
-			        __( '[Line %1$s] %2$s' , 'pmpro-import-members-from-csv'), $line, $message ) . "\n" );
-		}
-
-		@fclose( $log );
-	}
 
 	/**
 	 * AJAX service that does the heavy loading to import a CSV file
@@ -1219,6 +1335,7 @@ class Import_Members_From_CSV {
 			'deactivate_old_memberships' => $this->deactivate_old_memberships,
 			'background_import' => $this->background_import,
 			'per_partial' => $this->per_partial,
+			'site_id' => $this->site_id,
 		);
 
 		$args = apply_filters( 'pmp_im_import_arguments', $args );
@@ -1279,7 +1396,7 @@ class Import_Members_From_CSV {
 			//Clear position
 			delete_option("pmpcsv_{$this->filename}");
 			
-			wp_send_json_success(array( 'status' => true, 'message' => null ) );
+			wp_send_json_success(array( 'status' => true, 'message' => $status ) );
 			exit;
 			
 		} elseif ( !empty( $results['errors'] ) ) {
@@ -1365,9 +1482,15 @@ class Import_Members_From_CSV {
     public function import_membership_info( $user_id, $settings ) {
     
         global $wpdb;
-    
+        $errors = array();
+        
         wp_cache_delete($user_id, 'users');
         $user = get_userdata($user_id);
+        
+        if ( empty( $user ) ) {
+            $errors[] = new \WP_Error( 'import-member', sprintf( __( "Unable to locate user with expected user ID of %d", "pmpro-import-members-from-csv" ), $user_id ) );
+            return;
+        }
         
         // Generate PMPro specific member value(s)
         foreach ( $this->pmpro_fields as $var_name => $field_value ) {
@@ -1444,7 +1567,7 @@ class Import_Members_From_CSV {
          
             // Cancel previously existing (active) memberships (Should support MMPU add-on)
             // without triggering cancellation emails, etc
-            if ( true === $this->deactivate_old_memberships ) {
+            if ( true === (bool) $this->deactivate_old_memberships ) {
                 
                 // Update all currently active memberships with the specified ID for the specified user
                 $update_sql = $wpdb->prepare(
@@ -1457,7 +1580,13 @@ class Import_Members_From_CSV {
                                 'active'
                 );
                 
-                $wpdb->query( $update_sql );
+                if ( false === $wpdb->query( $update_sql ) ) {
+                    $errors[] = new \WP_Error( 'import-member',sprintf(
+                                    __('Unable to cancel old membership level (ID: %d) for user (ID: %d)', 'pmpro-import-members-from-csv' ),
+                                     $this->pmpro_fields['membership_id'],
+                                     $user_id
+                             ) );
+                }
             }
             
             $custom_level = array(
@@ -1495,6 +1624,8 @@ class Import_Members_From_CSV {
                         )
                    ) {
                     $membership_in_the_past = true;
+                } else {
+                    $errors[] = new \WP_Error( 'import-member',sprintf( __('Unable to set inactive membership status for user (ID: %d) with membership level ID %d', 'pmpro-import-members-from-csv' ),$user_id, $this->pmpro_fields['membership_id'] ) );
                 }
             }
             
@@ -1504,7 +1635,9 @@ class Import_Members_From_CSV {
                 strtotime($this->pmpro_fields['membership_enddate'], current_time('timestamp') ) >= current_time( 'timestamp' ) )
             ) {
                 
-                $wpdb->update( $wpdb->pmpro_memberships_users, array( 'status' => 'active' ), array( 'user_id' => $user_id, 'membership_id' => $this->pmpro_fields['membership_id'] ) );
+                if ( false === $wpdb->update( $wpdb->pmpro_memberships_users, array( 'status' => 'active' ), array( 'user_id' => $user_id, 'membership_id' => $this->pmpro_fields['membership_id'] ) ) ) {
+                    $errors[] = new \WP_Error( 'import-member',sprintf( __('Unable to set activate membership for user (ID: %d) with membership level ID %d', 'pmpro-import-members-from-csv' ),$user_id, $this->pmpro_fields['membership_id'] ) );
+                }
             }
         }
         
@@ -1551,7 +1684,7 @@ class Import_Members_From_CSV {
         // Add any Discount Code use for this user
         if( ! empty( $this->pmpro_fields['membership_code_id'] ) && ! empty( $order ) && !empty( $order->id ) ) {
             
-            $wpdb->insert(
+            if ( false === $wpdb->insert(
                     $wpdb->pmpro_discount_codes_uses,
                     array(
                             'code_id' => $this->pmpro_fields['membership_code_id'],
@@ -1560,7 +1693,9 @@ class Import_Members_From_CSV {
                             'timestamp' => 'CURRENT_TIMESTAMP',
                     ),
                     array( '%d', '%d', '%d', '%s')
-            );
+            ) ) {
+                $errors[] = new \WP_Error( 'import-member',sprintf( __('Unable to set update discount code usage for code (ID: %d ) for user (user/order id: %d/%s)', 'pmpro-import-members-from-csv' ),$this->pmpro_fields['membership_code_id'], $user_id, $order->id ) );
+            }
         }
     
         // Email 'your membership account is active' to member if they were imported with an active member status
@@ -1589,6 +1724,10 @@ class Import_Members_From_CSV {
             
             // Process and send email
             $email->sendEmail();
+        }
+        
+        if ( !empty( $errors ) ) {
+            $this->log_errors( $errors );
         }
     }
 
