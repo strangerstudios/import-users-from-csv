@@ -3,20 +3,21 @@ Contributors: eighty20results, sorich87, ideadude
 Tags: user, users, csv, batch, import, importer, admin, paid memberships pro, members, member, pmpro
 Requires at least: 4.4
 Tested up to: 4.9.1
-Stable tag: 2.1
+Stable tag: 2.3
 
 Import users from a CSV file into WordPress
 
 == Description ==
 
-I updated and integrated the Import Users from CSV with the PMPro Import Users from CSV Integration add-on to create a membership specific user CSV import plugin.
+I updated and integrated the Import Users from CSV with the PMPro Import Users from CSV Integration add-on to create a Paid Memberships Pro specific member import (CSV files) plugin.
 
-This plugin allows you to import users from an uploaded CSV file. It will add users with basic information as well as meta fields, the user role (if applicable) and the included PMPro Membership information.
+It will allow you to import users from a CSV file uploaded to your web server/membership site. It will add users with basic information as well as meta fields, the user role (if applicable) and the specified PMPro member configuration/information.
 
 If you've exported the user's passwords as hashed strings, you can import them without re-encrypting them again (by setting the option).
 
 You can also choose to send a notification to the new users and to display password nag on user login.
 
+This plugin supports WordPress Multi Site configuraions (see settings page when using in a multisite configuration)
 [Check out my other plugins.](http://eighty20results.com/wordpress-plugins/)
 
 = Features =
@@ -75,6 +76,18 @@ You can try importing that file and look at the result.
 1. User import screen
 
 == Changelog ==
+= 2.3 =
+* BUG FIX: PHP Warning
+* BUG FIX: The resume URL didn't work as expected
+* BUG FIX: Didn't set the blog ID when updating membership info
+* BUG FIX: Didn't cancel previous membership records for the imported user ID / membership ID combination when deactivate_old_memberships was set to true (checked)
+* ENHANCEMENT: Renamed import page function (documentation related)
+* ENHANCEMENT: Added link to error log (if applicable) to the admin notices
+
+= 2.2 =
+* ENHANCEMENT: Add support for WP Multi Site configurations (adding/updating users to the specified WPMU site)
+* ENHANCEMENT: Better error handling/notifications
+
 = 2.1 =
 * BUG FIX: Lost track of how to update via JavaScript
 * BUG FIX: Didn't preserve settings between loads of JS
