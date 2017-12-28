@@ -3,7 +3,7 @@
 * Plugin Name: Paid Memberships Pro - Import Members from CSV
 * Plugin URI: http://wordpress.org/plugins/pmpro-import-members-from-csv/
 * Description: Import Users and their metadata from a csv file.
-* Version: 2.2
+* Version: 2.3
 * Requires PHP: 5.4
 * Author: <a href="https://eighty20results.com/thomas-sjolshagen/">Thomas Sjolshagen <thomas@eighty20results.com></a>
 * License: GPL2
@@ -232,7 +232,7 @@ class Import_Members_From_CSV {
 	 *
 	 * @since 0.1
 	 **/
-	public function users_page() {
+	public function import_page() {
 	 
 		if ( ! current_user_can( 'create_users' ) ) {
 		    wp_die( __( 'You do not have sufficient permissions to access this page.' , 'pmpro-import-members-from-csv') );
@@ -300,7 +300,7 @@ class Import_Members_From_CSV {
 			        __('Your import is not finished. %1$sClosing this page will stop the import operation%2$s. If the import stops or you have to close your browser, you can navigate to %3$sthis URL%4$s to resume the import operation later.', 'pmpro-import-members-from-csv'),
 			'<strong>',
 			'</strong>',
-			sprintf('<a href="%s">', admin_url( $_SERVER['QUERY_STRING'] ) ),
+			sprintf('<a href="%s">', admin_url( 'admin.php' . "?{$_SERVER['QUERY_STRING']}" ) ),
 			'</a>'
 			); ?>
 			</p>
@@ -435,7 +435,7 @@ class Import_Members_From_CSV {
 		        __( 'Import Members' , 'pmpro-import-members-from-csv'),
 		        'create_users',
 		        'pmpro-import-members-from-csv',
-		        array( self::get_instance(), 'users_page' )
+		        array( self::get_instance(), 'import_page' )
         );
 	}
 
@@ -740,6 +740,19 @@ class Import_Members_From_CSV {
 		    return;
 		}
 
+		$this->add_error_msg(
+		        sprintf(
+		                __( 'Please inspect the import %1$serror log%2$s', 'pmpro-import-members-from-csv' ),
+		                sprintf(
+		                        '<a href="%1$s" title="%2$s" target="_blank">',
+		                        esc_url_raw( $this->logfile_url ),
+		                        __( "Link to import error log", "pmpro-import-members-from-csv" )
+		                        ),
+		                        '</a>'
+                    ),
+                    'warning'
+                );
+		
 		$log = @fopen( $this->logfile_path, 'a' );
 		
 		@fwrite( $log,
@@ -979,9 +992,9 @@ class Import_Members_From_CSV {
 			
             $default_role = apply_filters( 'pmp_im_import_default_user_role', 'subscriber',$user_id, $site_id );
 
-			// Is there an error o_O?
+			// Is there an error?
 			if ( is_wp_error( $user_id ) ) {
-				$errors[$rkey] = $user_id;
+			    $errors[$rkey] = $user_id;
 			} else {
 			 
 				// If no error, let's update the user meta too!
@@ -1384,6 +1397,7 @@ class Import_Members_From_CSV {
                     $status = sprintf( '<div class="updated"><p><strong>%s</strong></p></div>', __( 'Member import was successful.' , 'pmpro-import-members-from-csv') );
                     break;
                 default:
+                    $status = null;
             }
         }
 			
@@ -1484,6 +1498,16 @@ class Import_Members_From_CSV {
         global $wpdb;
         $errors = array();
         
+        // Define table names
+        $pmpro_member_table = "{$wpdb->prefix}pmpro_memberships_users";
+        $pmpro_dc_table = "{$wpdb->prefix}pmpro_discount_codes";
+        $pmpro_dc_uses_table = "{$wpdb->prefix}pmpro_discount_codes_uses";
+
+        
+        if ( is_multisite() ) {
+            $current_blog_id = get_current_blog_id();
+        }
+        
         wp_cache_delete($user_id, 'users');
         $user = get_userdata($user_id);
         
@@ -1496,29 +1520,21 @@ class Import_Members_From_CSV {
         foreach ( $this->pmpro_fields as $var_name => $field_value ) {
             
             $this->pmpro_fields[$var_name] = $user->{"imported_{$var_name}"};
-
         }
         
-        /*
-        $membership_id = $user->imported_membership_id;
-        $membership_code_id = $user->imported_membership_code_id;
-        $membership_discount_code = $user->imported_membership_discount_code;
-        $membership_initial_payment = $user->imported_membership_initial_payment;
-        $membership_billing_amount = $user->imported_membership_billing_amount;
-        $membership_cycle_number = $user->imported_membership_cycle_number;
-        $membership_cycle_period = $user->imported_membership_cycle_period;
-        $membership_billing_limit = $user->imported_membership_billing_limit;
-        $membership_trial_amount = $user->imported_membership_trial_amount;
-        $membership_trial_limit = $user->imported_membership_trial_limit;
-        $membership_status = $user->imported_membership_status;
-        $membership_startdate = $user->imported_membership_startdate;
-        $membership_enddate = $user->imported_membership_enddate;
-        $membership_timestamp = $user->imported_membership_timestamp;
-        */
+        // Set site ID and custom table names for the multi site configs
+        if ( is_multisite() ) {
+            switch_to_blog( $this->site_id );
+            
+            $pmpro_member_table = "{$wpdb->base_prefix}pmpro_memberships_users";
+            $pmpro_dc_table = "{$wpdb->base_prefix}pmpro_discount_codes";
+            $pmpro_dc_uses_table = "{$wpdb->base_prefix}pmpro_discount_codes_uses";
+            
+        }
         
         // Fix date formats
         if ( ! empty( $this->pmpro_fields['membership_startdate'] ) ) {
-            $this->pmpro_fields['membership_startdate'] = date_i18n(
+            $this->pmpro_fields['membership_startdate'] = date(
                     "Y-m-d 00:00:00",
                     strtotime($this->pmpro_fields['membership_startdate'], current_time('timestamp' )
                     )
@@ -1526,14 +1542,14 @@ class Import_Members_From_CSV {
         }
         
         if ( ! empty( $this->pmpro_fields['membership_enddate'] ) ) {
-            $this->pmpro_fields['membership_enddate'] = date_i18n(
+            
+            $this->pmpro_fields['membership_enddate'] = date(
                     "Y-m-d 23:59:59",
                     strtotime(
                             $this->pmpro_fields['membership_enddate'],
                             current_time('timestamp' )
                     )
                 );
-            
         } else {
             $this->pmpro_fields['membership_enddate'] = null;
         }
@@ -1554,7 +1570,7 @@ class Import_Members_From_CSV {
             $this->pmpro_fields['membership_code_id'] = $wpdb->get_var(
                     $wpdb->prepare(
                             "SELECT dc.id
-                              FROM {$wpdb->pmpro_discount_codes} AS dc
+                              FROM {$pmpro_dc_table} AS dc
                               WHERE dc.code = %s
                               LIMIT 1",
                               $this->pmpro_fields['membership_discount_code']
@@ -1564,23 +1580,13 @@ class Import_Members_From_CSV {
         
         //Change membership level
         if ( ! empty( $this->pmpro_fields['membership_id'] ) ) {
-         
+            
             // Cancel previously existing (active) memberships (Should support MMPU add-on)
             // without triggering cancellation emails, etc
-            if ( true === (bool) $this->deactivate_old_memberships ) {
+            if ( true === $this->deactivate_old_memberships ) {
                 
                 // Update all currently active memberships with the specified ID for the specified user
-                $update_sql = $wpdb->prepare(
-                        "UPDATE {$wpdb->pmpro_memberships_users} as mu
-                                SET mu.status = %s
-                                WHERE mu.user_id = %d AND mu.membership_id = %s AND mu.status = %s ",
-                                'cancelled',
-                                $user_id,
-                                $this->pmpro_fields['membership_id'],
-                                'active'
-                );
-                
-                if ( false === $wpdb->query( $update_sql ) ) {
+                if ( false === ($updated = $wpdb->update( $pmpro_member_table, array( 'status' => 'cancelled' ), array( 'user_id' => $user_id, 'membership_id' => $this->pmpro_fields['membership_id'], 'status' => 'active' ) ) ) ) {
                     $errors[] = new \WP_Error( 'import-member',sprintf(
                                     __('Unable to cancel old membership level (ID: %d) for user (ID: %d)', 'pmpro-import-members-from-csv' ),
                                      $this->pmpro_fields['membership_id'],
@@ -1607,35 +1613,48 @@ class Import_Members_From_CSV {
             
             pmpro_changeMembershipLevel($custom_level, $user_id, 'cancelled' );
             
+            // Get the most recently added column
+            $record_id = $wpdb->get_var(
+                    $wpdb->prepare(
+                            "SELECT mt.id
+                                      FROM {$pmpro_member_table} AS mt
+                                      WHERE mt.user_id = %d AND mt.membership_id = %d AND mt.status = %s
+                                      ORDER BY mt.id DESC LIMIT 1",
+                                  $user_id,
+                                  $custom_level['membership_id'],
+                                  $custom_level['status']
+                          )
+                    );
+            
             // If membership ended in the past, make it inactive for now
-            if ( "inactive" === $this->pmpro_fields['membership_status'] ||
+            if ( "inactive" == strtolower( $this->pmpro_fields['membership_status'] ) ||
                 ( ! empty($this->pmpro_fields['membership_enddate']) &&
-                    $this->pmpro_fields['membership_enddate'] !== "NULL" &&
+                    strtoupper( $this->pmpro_fields['membership_enddate'] ) != "NULL" &&
                     strtotime($this->pmpro_fields['membership_enddate'], current_time('timestamp') ) < current_time('timestamp' )
                     )
                 ) {
                 
                 if ( false !== $wpdb->update(
-                        $wpdb->pmpro_memberships_users,
+                        $pmpro_member_table,
                         array( 'status' => 'inactive' ),
-                        array( 'user_id' => $user_id, 'membership_id' => $this->pmpro_fields['membership_id'] ),
+                        array( 'id' => $record_id, 'user_id' => $user_id, 'membership_id' => $this->pmpro_fields['membership_id'] ),
                         array( '%s' ),
                         array( '%d', '%d' )
                         )
                    ) {
                     $membership_in_the_past = true;
                 } else {
-                    $errors[] = new \WP_Error( 'import-member',sprintf( __('Unable to set inactive membership status for user (ID: %d) with membership level ID %d', 'pmpro-import-members-from-csv' ),$user_id, $this->pmpro_fields['membership_id'] ) );
+                    $errors[] = new \WP_Error( 'import-member',sprintf( __('Unable to set inactive membership status/date for user (ID: %d) with membership level ID %d', 'pmpro-import-members-from-csv' ),$user_id, $this->pmpro_fields['membership_id'] ) );
                 }
             }
             
-            if ( 'active' === $this->pmpro_fields['membership_status'] &&
+            if ( 'active' == strtolower( $this->pmpro_fields['membership_status'] ) &&
             ( empty( $this->pmpro_fields['membership_enddate'] ) ||
-                'NULL' === strtoupper( $this->pmpro_fields['membership_enddate'] )  ||
+                'NULL' == strtoupper( $this->pmpro_fields['membership_enddate'] )  ||
                 strtotime($this->pmpro_fields['membership_enddate'], current_time('timestamp') ) >= current_time( 'timestamp' ) )
             ) {
                 
-                if ( false === $wpdb->update( $wpdb->pmpro_memberships_users, array( 'status' => 'active' ), array( 'user_id' => $user_id, 'membership_id' => $this->pmpro_fields['membership_id'] ) ) ) {
+                if ( false === $wpdb->update( $pmpro_member_table, array( 'status' => 'active' ), array( 'id' => $record_id, 'user_id' => $user_id, 'membership_id' => $this->pmpro_fields['membership_id'] ) ) ) {
                     $errors[] = new \WP_Error( 'import-member',sprintf( __('Unable to set activate membership for user (ID: %d) with membership level ID %d', 'pmpro-import-members-from-csv' ),$user_id, $this->pmpro_fields['membership_id'] ) );
                 }
             }
@@ -1685,7 +1704,7 @@ class Import_Members_From_CSV {
         if( ! empty( $this->pmpro_fields['membership_code_id'] ) && ! empty( $order ) && !empty( $order->id ) ) {
             
             if ( false === $wpdb->insert(
-                    $wpdb->pmpro_discount_codes_uses,
+                    $pmpro_dc_uses_table,
                     array(
                             'code_id' => $this->pmpro_fields['membership_code_id'],
                             'user_id' => $user_id,
@@ -1728,6 +1747,10 @@ class Import_Members_From_CSV {
         
         if ( !empty( $errors ) ) {
             $this->log_errors( $errors );
+        }
+        
+        if ( is_multisite() ) {
+            switch_to_blog( $current_blog_id );
         }
     }
 
