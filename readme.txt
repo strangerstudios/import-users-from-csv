@@ -1,6 +1,6 @@
 === Paid Memberships Pro - Import Members from CSV ===
 Contributors: eighty20results, sorich87, ideadude
-Tags: user, users, csv, batch, import, importer, admin, paid memberships pro, members, member, pmpro
+Tags: user, paid memberships pro, csv, batch, import, importer, admin, members, member, pmpro
 Requires at least: 4.4
 Tested up to: 4.9.1
 Stable tag: 2.3
