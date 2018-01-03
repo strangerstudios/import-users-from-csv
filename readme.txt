@@ -9,9 +9,9 @@ Import users from a CSV file into WordPress
 
 == Description ==
 
-I updated and integrated the Import Users from CSV with the PMPro Import Users from CSV Integration add-on to create a Paid Memberships Pro specific member import (CSV files) plugin.
+Updated and integrated the Import Users from CSV with the PMPro Import Users from CSV Integration add-on to create a Paid Memberships Pro specific member import (CSV files) plugin.
 
-It will allow you to import users from a CSV file uploaded to your web server/membership site. It will add users with basic information as well as meta fields, the user role (if applicable) and the specified PMPro member configuration/information.
+The plugin will let you import users (members) from a CSV file uploaded to your web server/membership site. It will add users with basic information as well as meta fields, the user role (if applicable) and the specified PMPro member configuration/information.
 
 If you've exported the user's passwords as hashed strings, you can import them without re-encrypting them again (by setting the option).
 
