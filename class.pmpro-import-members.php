@@ -1,5 +1,25 @@
 <?php
 /**
+ * *
+ *   * Copyright (c) 2018. - Eighty / 20 Results by Wicked Strong Chicks.
+ *   * ALL RIGHTS RESERVED
+ *   *
+ *   * This program is free software: you can redistribute it and/or modify
+ *   * it under the terms of the GNU General Public License as published by
+ *   * the Free Software Foundation, either version 3 of the License, or
+ *   * (at your option) any later version.
+ *   *
+ *   * This program is distributed in the hope that it will be useful,
+ *   * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   * GNU General Public License for more details.
+ *   *
+ *   * You should have received a copy of the GNU General Public License
+ *   * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/**
 * Plugin Name: Paid Memberships Pro - Import Members from CSV
 * Plugin URI: http://wordpress.org/plugins/pmpro-import-members-from-csv/
 * Description: Import Users and their metadata from a csv file.
@@ -11,7 +31,7 @@
 * Domain Path: languages/
 */
 /**
- * Copyright 2017 - Thomas Sjolshagen (https://eighty20results.com/thomas-sjolshagen)
+ * Copyright 2017-2018 - Thomas Sjolshagen (https://eighty20results.com/thomas-sjolshagen)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2, as

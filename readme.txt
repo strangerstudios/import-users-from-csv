@@ -1,4 +1,4 @@
-=== Import Users from CSV ===
+=== Paid Memberships Pro - Import Members from CSV ===
 Contributors: eighty20results, sorich87, ideadude
 Tags: user, users, csv, batch, import, importer, admin, paid memberships pro, members, member, pmpro
 Requires at least: 4.4
@@ -22,12 +22,17 @@ This plugin supports WordPress Multi Site configuraions (see settings page when 
 
 = Features =
 
-* Imports all users fields
+* Imports all WP User database table fields
 * Imports user meta
-* Update existing users by specifying ID field
-* Allows setting user role
-* Sends new user notification (if the option is selected)
+* Imports PMPro membership data
+* Update existing users if they already exist in the WP Users database (if the option is selected)
+* Deactivate preexisting membership records for the same membership level as is being imported (if the option is selected)
+* Set/Update the user WordPress role for the member (if the role is specified in the import file)
+* Sends new user a notification message (if the option is selected)
 * Shows password nag on user login (if the option is selected)
+* Allows large user/member import without having to configure the PHP max_execution_time variable (if the option is selected)
+* Import hashed password for new/updating users (if the option is selected)
+
 
 For feature request and bug reports, [please use the issues section on GitHub](https://github.com/eighty20results/import-members-from-csv/issues).
 Code contributions are welcome [on Github](https://github.com/eighty20results/import-members-from-csv).
@@ -44,36 +49,48 @@ For an automatic installation through WordPress:
 
 Or use a nifty tool by WordPress lead developer Mark Jaquith:
 
-1. Visit [this link](http://coveredwebservices.com/wp-plugin-install/?plugin=import-users-from-csv) and follow the instructions.
+1. Visit [this link](http://coveredwebservices.com/wp-plugin-install/?plugin=pmpro-import-members-from-csv) and follow the instructions.
 
 
 For a manual installation via FTP:
 
-1. Upload the `import-users-from-csv` directory to the `/wp-content/plugins/` directory
+1. Upload the `pmpro-import-members-from-csv` directory to the `/wp-content/plugins/` directory
 1. Activate the plugin through the 'Plugins' screen in your WordPress admin area
-1. Upload your CSV file in the 'Users' menu, under 'Import From CSV'
+1. Upload your CSV file in the 'Members' menu, under 'Import Members'
 
 
 To upload the plugin through WordPress, instead of FTP:
 
-1. Upload the downloaded zip file on the 'Add New' plugins screen (see the 'Upload' tab) in your WordPress admin area and activate.
-1. Upload your CSV file in the 'Users' menu, under 'Import From CSV'
+1. Search for the plugin ("Paid Memberships Pro Import Members from CSV" on the 'Add New' plugins screen in your WordPress admin area and activate.
+1. Upload your CSV file in the 'Memberships' menu, under 'Import Members'
 
 == Frequently Asked Questions ==
 
 = How to use? =
 
-Click on the 'Import From CSV' link in the 'Users' menu, choose your CSV file, choose if you want to send a notification email to new users and if you want the password nag to be displayed when they login, then click 'Import'.
+Click on the 'Import Members' link in the 'Membership' menu, then select your CSV file.
+Next you have to decide whether you:
 
-Each row in your CSV file should represent a user; each column identifies user data or meta data.
-If a column name matches a field in the user table, data from this column is imported in that field; if not, data is imported in a user meta field with the name of the column.
+1. want to deactivate previously existing member record(s) for the user - The CSV record has to specify the same membership as the user previously had so this is most useful when having to reimport/update data (default: enabled),
+1. update the existing user/member's information (default: enabled)
+1. send a notification email to new users (ddefault: isabled),
+1. want the password nag to be displayed when the user logs in (default: disabled),
+1. have included a hashed (encoded) password specified in the import file and (default: disabled)
+1. want to use the background import option (default: enabled)
 
-Look at the example.csv file in the plugin directory to have a better understanding of how the your CSV file should be organized.
+Then click the 'Import' button.
+
+Each row in your CSV file should represent a user; each column identifies user data, user meta data or user membership data
+If a column name matches a field in the user table, data from this column is imported in that field; if not, data is imported in a user meta field with the name of the column or into the PMPro custom membership tables.
+
+Look at the examples/import.csv file in the plugin directory to have a better understanding of how the your CSV file should be organized.
 You can try importing that file and look at the result.
 
 == Screenshots ==
 
 1. User import screen
+1. Ongoing (background) import screen
+1. Default settings on the user import screen
 
 == Changelog ==
 = 2.3 =
@@ -133,84 +150,8 @@ You can try importing that file and look at the result.
 * Enhancement: Moved JavaScript to own location
 
 = 2.0.0 =
+* Forked from the Import Users from CSV plugin and integrated the "PMPro Import Users From CSV Integration" add-on functionality
 * Fixed bug with Notification Nag
 * Fixed bug with user notification
 * Fixed bugs with static/non-static function calls
 * Enhancement: JavaScript based async loading (for large imports)
-
-= 1.0.0 =
-* Fixed bug where importing fields with "0" value doesn't work
-* Added option to update existing users by username or email
-
-= 0.5.1 =
-* Removed example plugin file to avoid invalid header error on
-installation
-
-= 0.5 =
-* Changed code to allow running import from another plugin
-
-= 0.4 =
-* Switched to RFC 4180 compliant library for CSV parsing
-* Introduced IS_IU_CSV_DELIMITER constant to allow changing the CSV delimiter
-* Improved memory usage by reading the CSV file line by line
-* Fixed bug where any serialized CSV column content is serialized again
-on import
-
-= 0.3.2 =
-* Fixed php notice when importing
-
-= 0.3.1 =
-* Don't process empty columns in the csv file
-
-= 0.3 =
-* Fixed bug where password field was overwritten for existing users
-* Use fgetcsv instead of str_getcsv
-* Don't run insert or update user function when only user ID was
-provided (performance improvement)
-* Internationalization
-* Added display name to example csv file
-
-= 0.2.2 =
-* Added role to example file
-* Fixed bug with users not imported when no user meta is set
-
-= 0.2.1 =
-* Added missing example file
-* Fixed bug with redirection after csv processing
-* Fixed error logging
-* Fixed typos in documentation
-* Other bug fixes
-
-= 0.2 =
-* First public release.
-* Code cleanup.
-* Added readme.txt.
-
-= 0.1 =
-* First release.
-
-== Upgrade Notice ==
-
-= 0.5.1 =
-* Installation error fix.
-
-= 0.5 =
-* Code improvement for easier integration with another plugin.
-
-= 0.4 =
-* RFC 4180 compliance, performance improvement and bug fix.
-
-= 0.3 =
-Bug fix, performance improvement and internationalization.
-
-= 0.2.2 =
-Fix bug with users import when no user meta is set.
-
-= 0.2.1 =
-Various bug fixes and documentation improvements.
-
-= 0.2 =
-Code cleanup. Added readme.txt.
-
-= 0.1 =
-First release.
