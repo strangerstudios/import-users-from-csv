@@ -2,8 +2,8 @@
 Contributors: eighty20results, sorich87, ideadude
 Tags: user, paid memberships pro, csv, batch, import, importer, admin, members, member, pmpro
 Requires at least: 4.4
-Tested up to: 4.9.1
-Stable tag: 2.3
+Tested up to: 4.9.2
+Stable tag: 2.4
 
 Import users from a CSV file into WordPress
 
@@ -93,6 +93,10 @@ You can try importing that file and look at the result.
 1. Default settings on the user import screen
 
 == Changelog ==
+= 2.4 =
+* BUG FIX: Typo in add_action( 'pmp_im_pre_user_import' ...) caused default pre-import action to not be triggered
+* ENHANCEMENT/FIX: Updated action names: 'pmp_im_post_member_import', 'pmp_im_pre_members_import'
+
 = 2.3 =
 * BUG FIX: PHP Warning
 * BUG FIX: The resume URL didn't work as expected
