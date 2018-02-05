@@ -211,9 +211,9 @@ class Import_Members_From_CSV {
 		add_action( 'wp_ajax_import_members_from_csv', array( self::get_instance(), 'wp_ajax_import_members_from_csv' ) );
 		
 		// PMPro specific import functionality
-		add_action( 'pmp_im_pre_user_import', array( self::get_instance(), 'pre_member_import' ) , 10, 2);
+		add_action( 'pmp_im_pre_member_import', array( self::get_instance(), 'pre_member_import' ) , 10, 2);
 		add_filter( 'pmp_im_import_usermeta', array( self::get_instance(), 'import_usermeta' ), 10, 2);
-		add_action( 'pmp_im_post_user_import', array( self::get_instance(), 'import_membership_info' ), 10, 2 );
+		add_action( 'pmp_im_post_member_import', array( self::get_instance(), 'import_membership_info' ), 10, 2 );
 		
 		add_action( 'admin_bar_menu', array( self::get_instance(), 'load_to_pmpro_menu' ), 1001 );
 		
@@ -1045,7 +1045,7 @@ class Import_Members_From_CSV {
 
 				// Some plugins may need to do things after one user has been imported. Who know?
 				do_action( 'is_iu_post_user_import', $user_id, $settings );
-				do_action( 'pmp_im_post_user_import', $user_id, $settings );
+				do_action( 'pmp_im_post_member_import', $user_id, $settings );
 
 				$user_ids[] = $user_id;
 			}
@@ -1070,7 +1070,7 @@ class Import_Members_From_CSV {
 
 		// One more thing to do after all imports?
 		do_action( 'is_iu_post_users_import', $user_ids, $errors );
-		do_action( 'pmp_im_post_users_import', $user_ids, $errors );
+		do_action( 'pmp_im_post_members_import', $user_ids, $errors );
 
 		// Let's log the errors
 		$this->log_errors( $errors );
