@@ -28,6 +28,10 @@ Text Domain: import-users-from-csv
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 load_plugin_textdomain( 'import-users-from-csv', false, basename( dirname( __FILE__ ) ) . '/languages' );
 
 if ( ! defined( 'IS_IU_CSV_DELIMITER' ) )
@@ -73,7 +77,7 @@ class IS_IU_Import_Users {
 	 * @since ?
 	 **/
 	public static function admin_enqueue_scripts($hook) {
-		if ( empty($_GET['page']) || $_GET['page'] != 'import-users-from-csv') {
+		if ( empty($_GET['page']) || $_GET['page'] != 'import-users-from-csv') { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check of the current admin page before enqueueing a script.
 			return;
 		}
 
@@ -91,10 +95,10 @@ class IS_IU_Import_Users {
 			
 			if ( isset( $_FILES['users_csv']['tmp_name'] ) ) {
 				// Setup settings variables
-				$filename              = $_FILES['users_csv']['tmp_name'];
-				$password_nag          = isset( $_POST['password_nag'] ) ? $_POST['password_nag'] : false;
-				$users_update          = isset( $_POST['users_update'] ) ? $_POST['users_update'] : false;
-				$new_user_notification = isset( $_POST['new_user_notification'] ) ? $_POST['new_user_notification'] : false;
+				$filename              = $_FILES['users_csv']['tmp_name']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP-generated temporary upload path; sanitizing could alter it.
+				$password_nag          = isset( $_POST['password_nag'] ) ? sanitize_text_field( wp_unslash( $_POST['password_nag'] ) ) : false;
+				$users_update          = isset( $_POST['users_update'] ) ? sanitize_text_field( wp_unslash( $_POST['users_update'] ) ) : false;
+				$new_user_notification = isset( $_POST['new_user_notification'] ) ? sanitize_text_field( wp_unslash( $_POST['new_user_notification'] ) ) : false;
 				
 				//use AJAX?
 				if(!empty($_POST['ajaximport']))
@@ -110,7 +114,7 @@ class IS_IU_Import_Users {
 					}
 													
 					//figure out filename
-					$filename = $_FILES['users_csv']['name'];
+					$filename = sanitize_file_name( $_FILES['users_csv']['name'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- Set by PHP together with tmp_name, which is checked above.
 					$count = 0;
 								
 					while(file_exists($import_dir . $filename))
@@ -124,26 +128,26 @@ class IS_IU_Import_Users {
 						
 						//let's not expect more than 50 files with the same name
 						if($count > 50)
-							die("Error uploading file. Too many files with the same name. Clean out the " . $import_dir . " directory on your server.");									
+							die("Error uploading file. Too many files with the same name. Clean out the " . esc_html( $import_dir ) . " directory on your server.");									
 					}
 								
 					//save file
-					if(strpos($_FILES['users_csv']['tmp_name'], $upload_dir['basedir']) !== false)
+					if(strpos($_FILES['users_csv']['tmp_name'], $upload_dir['basedir']) !== false) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP-generated temporary upload path; sanitizing could alter it.
 					{
 						//was uploaded and saved to $_SESSION
-						rename($_FILES['users_csv']['tmp_name'], $import_dir . $filename);			
+						rename($_FILES['users_csv']['tmp_name'], $import_dir . $filename); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP-generated temporary upload path; sanitizing could alter it.
 					}
 					else
 					{
 						//it was just uploaded
-						move_uploaded_file($_FILES['users_csv']['tmp_name'], $import_dir . $filename);				
+						move_uploaded_file($_FILES['users_csv']['tmp_name'], $import_dir . $filename); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP-generated temporary upload path; sanitizing could alter it.
 					}
 					
 					//redurect to the page to run AJAX
 					$url = admin_url('users.php?page=import-users-from-csv&import=resume&filename=' . $filename);
 					$url = add_query_arg(array('password_nag'=>$password_nag, 'new_user_notification'=>$new_user_notification, 'users_update'=>$users_update), $url);
 					
-					wp_redirect($url);
+					wp_safe_redirect($url);
 					exit;
 				}
 				else
@@ -156,21 +160,21 @@ class IS_IU_Import_Users {
 
 					// No users imported?
 					if ( ! $results['user_ids'] )
-						wp_redirect( add_query_arg( 'import', 'fail', wp_get_referer() ) );
+						wp_safe_redirect( add_query_arg( 'import', 'fail', wp_get_referer() ) );
 
 					// Some users imported?
 					elseif ( $results['errors'] )
-						wp_redirect( add_query_arg( 'import', 'errors', wp_get_referer() ) );
+						wp_safe_redirect( add_query_arg( 'import', 'errors', wp_get_referer() ) );
 
 					// All users imported? :D
 					else
-						wp_redirect( add_query_arg( 'import', 'success', wp_get_referer() ) );
+						wp_safe_redirect( add_query_arg( 'import', 'success', wp_get_referer() ) );
 
 					exit;
 				}
 			}
 
-			wp_redirect( add_query_arg( 'import', 'file', wp_get_referer() ) );
+			wp_safe_redirect( add_query_arg( 'import', 'file', wp_get_referer() ) );
 			exit;
 		}
 	}
@@ -182,57 +186,57 @@ class IS_IU_Import_Users {
 	 **/
 	public static function users_page() {
 		if ( ! current_user_can( 'create_users' ) )
-			wp_die( __( 'You do not have sufficient permissions to access this page.' , 'import-users-from-csv') );
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.' , 'import-users-from-csv') );
 	?>
 	<div class="wrap">
-		<h2><?php _e( 'Import users from a CSV file' , 'import-users-from-csv'); ?></h2>
+		<h2><?php esc_html_e( 'Import users from a CSV file' , 'import-users-from-csv'); ?></h2>
 		<?php
 		$error_log_file = self::$log_dir_path . 'is_iu_errors.log';
 		$error_log_url  = self::$log_dir_url . 'is_iu_errors.log';
 
 		if ( ! file_exists( $error_log_file ) ) {
 			if ( ! @fopen( $error_log_file, 'x' ) )
-				echo '<div class="updated"><p><strong>' . sprintf( __( 'Notice: please make the directory %s writable so that you can see the error log.' , 'import-users-from-csv'), self::$log_dir_path ) . '</strong></p></div>';
+				echo '<div class="updated"><p><strong>' . sprintf( esc_html__( 'Notice: please make the directory %s writable so that you can see the error log.' , 'import-users-from-csv'), esc_html( self::$log_dir_path ) ) . '</strong></p></div>';
 		}
 
-		if ( isset( $_GET['import'] ) ) {
+		if ( isset( $_GET['import'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status message display.
 			$error_log_msg = '';
 			if ( file_exists( $error_log_file ) )
-				$error_log_msg = sprintf( __( ', please <a href="%s">check the error log</a>' , 'import-users-from-csv'), $error_log_url );
+				$error_log_msg = sprintf( __( ', please <a href="%s">check the error log</a>' , 'import-users-from-csv'), esc_url( $error_log_url ) );
 
-			switch ( $_GET['import'] ) {
+			switch ( $_GET['import'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status message display.
 				case 'file':
-					echo '<div class="error"><p><strong>' . __( 'Error during file upload.' , 'import-users-from-csv') . '</strong></p></div>';
+					echo '<div class="error"><p><strong>' . esc_html__( 'Error during file upload.' , 'import-users-from-csv') . '</strong></p></div>';
 					break;
 				case 'data':
-					echo '<div class="error"><p><strong>' . __( 'Cannot extract data from uploaded file or no file was uploaded.' , 'import-users-from-csv') . '</strong></p></div>';
+					echo '<div class="error"><p><strong>' . esc_html__( 'Cannot extract data from uploaded file or no file was uploaded.' , 'import-users-from-csv') . '</strong></p></div>';
 					break;
 				case 'fail':
-					echo '<div class="error"><p><strong>' . sprintf( __( 'No user was successfully imported%s.' , 'import-users-from-csv'), $error_log_msg ) . '</strong></p></div>';
+					echo '<div class="error"><p><strong>' . wp_kses_post( sprintf( esc_html__( 'No user was successfully imported%s.' , 'import-users-from-csv'), $error_log_msg ) ) . '</strong></p></div>';
 					break;
 				case 'errors':
-					echo '<div class="error"><p><strong>' . sprintf( __( 'Some users were successfully imported but some were not%s.' , 'import-users-from-csv'), $error_log_msg ) . '</strong></p></div>';
+					echo '<div class="error"><p><strong>' . wp_kses_post( sprintf( esc_html__( 'Some users were successfully imported but some were not%s.' , 'import-users-from-csv'), $error_log_msg ) ) . '</strong></p></div>';
 					break;
 				case 'success':
-					echo '<div class="updated"><p><strong>' . __( 'Users import was successful.' , 'import-users-from-csv') . '</strong></p></div>';
+					echo '<div class="updated"><p><strong>' . esc_html__( 'Users import was successful.' , 'import-users-from-csv') . '</strong></p></div>';
 					break;
 				default:
 					break;
 			}
 			
-			if($_GET['import'] == 'resume' && !empty($_GET['filename']))
+			if($_GET['import'] == 'resume' && !empty($_GET['filename'])) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing to the resume screen.
 			{
-				$filename = sanitize_file_name($_GET['filename']);
-				$password_nag          = isset( $_GET['password_nag'] ) ? $_GET['password_nag'] : false;
-				$users_update          = isset( $_GET['users_update'] ) ? $_GET['users_update'] : false;
-				$new_user_notification = isset( $_GET['new_user_notification'] ) ? $_GET['new_user_notification'] : false;				
+				$filename = sanitize_file_name( wp_unslash( $_GET['filename'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display of the resume screen.
+				$password_nag          = isset( $_GET['password_nag'] ) ? sanitize_text_field( wp_unslash( $_GET['password_nag'] ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display of the resume screen.
+				$users_update          = isset( $_GET['users_update'] ) ? sanitize_text_field( wp_unslash( $_GET['users_update'] ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display of the resume screen.
+				$new_user_notification = isset( $_GET['new_user_notification'] ) ? sanitize_text_field( wp_unslash( $_GET['new_user_notification'] ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display of the resume screen.				
 
 				//resetting position transients?
 				if(!empty($_GET['reset']))
 					delete_transient('iufcsv_' . $filename);
 			?>
 			<h3>Importing file over AJAX</h3>
-			<p><strong>IMPORTANT:</strong> Your import is not finished. Closing this page will stop it. If the import stops or you have to close your browser, you can navigate to <a href="<?php echo admin_url($_SERVER['QUERY_STRING']);?>">this URL</a> to resume the import later.</p>
+			<p><strong>IMPORTANT:</strong> Your import is not finished. Closing this page will stop it. If the import stops or you have to close your browser, you can navigate to <a href="<?php echo esc_url( admin_url( isset( $_SERVER['QUERY_STRING'] ) ? wp_unslash( $_SERVER['QUERY_STRING'] ) : '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Escaped with esc_url() on output. ?>">this URL</a> to resume the import later.</p>
 			
 			<p>
 				<a id="pauseimport" href="#">Click here to pause.</a>
@@ -250,62 +254,62 @@ class IS_IU_Import_Users {
 			}
 		}
 		
-		if(empty($_GET['filename']))
+		if(empty($_GET['filename'])) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing between the upload form and the resume screen.
 		{
 		?>
 		<form method="post" action="" enctype="multipart/form-data">
 			<?php wp_nonce_field( 'is-iu-import-users-users-page_import', '_wpnonce-is-iu-import-users-users-page_import' ); ?>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><label for="users_csv"><?php _e( 'CSV file' , 'import-users-from-csv'); ?></label></th>
+					<th scope="row"><label for="users_csv"><?php esc_html_e( 'CSV file' , 'import-users-from-csv'); ?></label></th>
 					<td>
 						<input type="file" id="users_csv" name="users_csv" value="" class="all-options" /><br />
-						<span class="description"><?php echo sprintf( __( 'You may want to see <a href="%s">the example of the CSV file</a>.' , 'import-users-from-csv'), plugin_dir_url(__FILE__).'examples/import.csv'); ?></span>
+						<span class="description"><?php echo wp_kses_post( sprintf( __( 'You may want to see <a href="%s">the example of the CSV file</a>.' , 'import-users-from-csv'), esc_url( plugin_dir_url(__FILE__).'examples/import.csv' ) ) ); ?></span>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php _e( 'Notification' , 'import-users-from-csv'); ?></th>
+					<th scope="row"><?php esc_html_e( 'Notification' , 'import-users-from-csv'); ?></th>
 					<td><fieldset>
-						<legend class="screen-reader-text"><span><?php _e( 'Notification' , 'import-users-from-csv'); ?></span></legend>
+						<legend class="screen-reader-text"><span><?php esc_html_e( 'Notification' , 'import-users-from-csv'); ?></span></legend>
 						<label for="new_user_notification">
 							<input id="new_user_notification" name="new_user_notification" type="checkbox" value="1" />
-							<?php _e('Send to new users', 'import-users-from-csv') ?>
+							<?php esc_html_e('Send to new users', 'import-users-from-csv') ?>
 						</label>
 					</fieldset></td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php _e( 'Password nag' , 'import-users-from-csv'); ?></th>
+					<th scope="row"><?php esc_html_e( 'Password nag' , 'import-users-from-csv'); ?></th>
 					<td><fieldset>
-						<legend class="screen-reader-text"><span><?php _e( 'Password nag' , 'import-users-from-csv'); ?></span></legend>
+						<legend class="screen-reader-text"><span><?php esc_html_e( 'Password nag' , 'import-users-from-csv'); ?></span></legend>
 						<label for="password_nag">
 							<input id="password_nag" name="password_nag" type="checkbox" value="1" />
-							<?php _e('Show password nag on new users signon', 'import-users-from-csv') ?>
+							<?php esc_html_e('Show password nag on new users signon', 'import-users-from-csv') ?>
 						</label>
 					</fieldset></td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php _e( 'Users update' , 'import-users-from-csv'); ?></th>
+					<th scope="row"><?php esc_html_e( 'Users update' , 'import-users-from-csv'); ?></th>
 					<td><fieldset>
-						<legend class="screen-reader-text"><span><?php _e( 'Users update' , 'import-users-from-csv' ); ?></span></legend>
+						<legend class="screen-reader-text"><span><?php esc_html_e( 'Users update' , 'import-users-from-csv' ); ?></span></legend>
 						<label for="users_update">
 							<input id="users_update" name="users_update" type="checkbox" value="1" />
-							<?php _e( 'Update user when a username or email exists', 'import-users-from-csv' ) ;?>
+							<?php esc_html_e( 'Update user when a username or email exists', 'import-users-from-csv' ) ;?>
 						</label>
 					</fieldset></td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php _e( 'AJAX' , 'import-users-from-csv'); ?></th>
+					<th scope="row"><?php esc_html_e( 'AJAX' , 'import-users-from-csv'); ?></th>
 					<td><fieldset>
-						<legend class="screen-reader-text"><span><?php _e( 'AJAX' , 'import-users-from-csv' ); ?></span></legend>
+						<legend class="screen-reader-text"><span><?php esc_html_e( 'AJAX' , 'import-users-from-csv' ); ?></span></legend>
 						<label for="ajaximport">
 							<input id="ajaximport" name="ajaximport" type="checkbox" value="1" />
-							<?php _e( 'Use AJAX to process the import gradually over time.', 'import-users-from-csv' ) ;?>
+							<?php esc_html_e( 'Use AJAX to process the import gradually over time.', 'import-users-from-csv' ) ;?>
 						</label>
 					</fieldset></td>
 				</tr>
 			</table>
 			<p class="submit">
-				<input type="submit" class="button-primary" value="<?php _e( 'Import' , 'import-users-from-csv'); ?>" />
+				<input type="submit" class="button-primary" value="<?php esc_attr_e( 'Import' , 'import-users-from-csv'); ?>" />
 			</p>
 		</form>
 
@@ -325,7 +329,7 @@ class IS_IU_Import_Users {
 		if(empty($_GET['filename']))
 			die("No file name given.");
 		else
-			$filename = sanitize_file_name($_GET['filename']);
+			$filename = sanitize_file_name( wp_unslash( $_GET['filename'] ) );
 		
 		//figure out upload dir
 		$upload_dir = wp_upload_dir();
@@ -336,9 +340,9 @@ class IS_IU_Import_Users {
 			die("nofile");
 
 		//get settings
-		$password_nag          = isset( $_GET['password_nag'] ) ? $_GET['password_nag'] : false;
-		$users_update          = isset( $_GET['users_update'] ) ? $_GET['users_update'] : false;
-		$new_user_notification = isset( $_GET['new_user_notification'] ) ? $_GET['new_user_notification'] : false;
+		$password_nag          = isset( $_GET['password_nag'] ) ? sanitize_text_field( wp_unslash( $_GET['password_nag'] ) ) : false;
+		$users_update          = isset( $_GET['users_update'] ) ? sanitize_text_field( wp_unslash( $_GET['users_update'] ) ) : false;
+		$new_user_notification = isset( $_GET['new_user_notification'] ) ? sanitize_text_field( wp_unslash( $_GET['new_user_notification'] ) ) : false;
 		
 		//import next few lines of file
 		$args = array(
@@ -368,7 +372,7 @@ class IS_IU_Import_Users {
 
 		// All users imported? :D
 		else
-			echo "Importing " . str_pad('', count($results['user_ids']), '.') . "\n";
+			echo "Importing " . esc_html( str_pad('', count($results['user_ids']), '.') ) . "\n";
 		
 		exit;	
 	}
