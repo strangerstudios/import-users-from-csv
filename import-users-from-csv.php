@@ -88,6 +88,10 @@ class IS_IU_Import_Users {
 	public static function process_csv() {
 		if ( isset( $_POST['_wpnonce-is-iu-import-users-users-page_import'] ) ) {
 			check_admin_referer( 'is-iu-import-users-users-page_import', '_wpnonce-is-iu-import-users-users-page_import' );
+
+			if ( ! current_user_can( 'create_users' ) ) {
+				wp_die( esc_html__( 'You do not have permission to import users.', 'import-users-from-csv' ) );
+			}
 			
 			if ( isset( $_FILES['users_csv']['tmp_name'] ) ) {
 				// Setup settings variables
@@ -108,9 +112,25 @@ class IS_IU_Import_Users {
 					{
 						wp_mkdir_p($import_dir);
 					}
+
+					// Keep uploaded CSVs from being listed or downloaded directly.
+					if ( ! file_exists( $import_dir . 'index.php' ) ) {
+						file_put_contents( $import_dir . 'index.php', "<?php\n// Silence is golden.\n" );
+					}
+					if ( ! file_exists( $import_dir . '.htaccess' ) ) {
+						file_put_contents( $import_dir . '.htaccess', "<IfModule mod_authz_core.c>\nRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n" );
+					}
+
+					// Only accept CSV files.
+					$filetype = wp_check_filetype( $_FILES['users_csv']['name'], array( 'csv' => 'text/csv' ) );
+					if ( empty( $filetype['ext'] ) ) {
+						wp_redirect( add_query_arg( 'import', 'file', wp_get_referer() ) );
+						exit;
+					}
 													
 					//figure out filename
-					$filename = $_FILES['users_csv']['name'];
+					// Prefix a random string so stored import files can't be guessed.
+					$filename = wp_generate_password( 12, false ) . '-' . sanitize_file_name( basename( $_FILES['users_csv']['name'] ) );
 					$count = 0;
 								
 					while(file_exists($import_dir . $filename))
@@ -245,6 +265,7 @@ class IS_IU_Import_Users {
 				var ai_users_update = <?php echo json_encode($users_update);?>;
 				var ai_new_user_notification = <?php echo json_encode($new_user_notification);?>;
 				var ai_password_nag = <?php echo json_encode($password_nag);?>;
+				var ai_nonce = <?php echo json_encode( wp_create_nonce( 'import_users_from_csv' ) );?>;
 			</script>
 			<?php
 			}
@@ -319,8 +340,13 @@ class IS_IU_Import_Users {
 	 *
 	 * @since ?
 	 */
-	public function wp_ajax_import_users_from_csv()
+	public static function wp_ajax_import_users_from_csv()
 	{
+		check_ajax_referer( 'import_users_from_csv', 'nonce' );
+		if ( ! current_user_can( 'create_users' ) ) {
+			wp_die( esc_html__( 'You do not have permission to import users.', 'import-users-from-csv' ) );
+		}
+
 		//check for filename
 		if(empty($_GET['filename']))
 			die("No file name given.");
